@@ -1,0 +1,71 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: sync
+
+on:
+  # push:
+  #   branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+        
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout tools repo
+      uses: actions/checkout@v2
+      with:
+        repository: dearbot/github-data-user
+        token: ${{ secrets.PAT }}
+        ref: graphql
+        path: data
+        lfs: true
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - run: |
+        cd data/jobs
+        mkdir -p /tmp/users/
+        rsync -a ../users/ /tmp/users/
+        for i in $(ls -d */)
+        do
+          echo ${i}
+          rsync -ab ${i} /tmp/users/
+        done
+        for i in $(find /tmp/users -name "*~")
+        do 
+          # echo $i
+          f=$(echo $i | sed -e 's/~//g' -e 's/\/tmp/\.\./g')
+          if [ -f $f ]; then
+            rm $f
+          else
+            echo $f no exist.
+            ff=$(echo $f | sed -e 's/\.\.\/users/85/g')
+            if [ -f $ff ]; then
+              rm $ff
+            else
+              echo $ff no exist.
+            fi
+          fi
+        done
+    - name: check for changes and git push
+      run: |
+        echo $GITHUB_RUN_ID
+        echo $GITHUB_RUN_NUMBER
+        cd data
+        git branch --show-current
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add .
+        git commit -m "Add changes"
+        git push
+       

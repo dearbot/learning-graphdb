@@ -1,0 +1,55 @@
+# remote: fatal: non-blob object size limit exceeded (tree 85ac13f2cb081d911ad9548a05fd5ce8fdc127e5 is 54400000 bytes)        
+# error: remote unpack failed: index-pack abnormal exit
+# https://stackoverflow.com/questions/41700258/non-blob-object-size-limit-exceeded-from-github-git
+# This error is caused by a file in git's internal data store being too large, and github rejecting files which are too large. There are three common ways to make files which are too large:
+# - Commit a single file which is extremely large
+# - A single commit where you change too many files
+# - A directory which contains too many files
+
+name: file
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+        
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    #timeout-minutes: 360
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkout tools repo
+      uses: actions/checkout@v2
+      with:
+        repository: dearbot/max-number-of-files
+        token: ${{ secrets.PAT }}
+        ref: main
+        path: data
+    - run: |
+        mkdir -p data/data
+        BASE=$(cat /proc/sys/kernel/random/uuid)
+        mkdir -p data/uuid/$BASE
+        for (( i=0; i<50000; i++))
+        do
+            UUID=$(cat /proc/sys/kernel/random/uuid)
+            touch data/uuid/$BASE/$UUID.txt
+        done
+        cd data
+        WC=$(ls -lR| grep "^-" | wc -l)
+        echo -e "# The Max number of files\n\n Current: **$[WC-2]** files" > ./README.md
+    - name: check for changes and git push
+      continue-on-error: true
+      run: |
+        cd data
+        git branch --show-current
+        if [[ `git status -s` ]]; then
+          echo "CHANGED"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -m "Add changes" -a
+          git push
+        else
+          echo "NO CHANGED"
+        fi
