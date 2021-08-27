@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 */3 * * *'
   workflow_dispatch:
     inputs:
       timeout:
@@ -46,7 +46,7 @@ jobs:
     #     for i in $(ls -d */); do rsync -a ${i} ../users/; done
     - run: python user_v4.py ${{ secrets.PAT }} ${{ github.event.inputs.timeout }}
       if: github.event_name == 'workflow_dispatch'
-    - run: python user_v4.py ${{ secrets.PAT }} 60
+    - run: python user_v4.py ${{ secrets.PAT }} 120
       if: github.event_name == 'schedule'
     - name: move new files to job folder
       run: |
