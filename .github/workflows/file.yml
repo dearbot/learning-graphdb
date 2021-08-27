@@ -27,6 +27,8 @@ jobs:
         ref: main
         path: data
     - run: |
+        df
+        du -sh data
         mkdir -p data/data
         BASE=$(cat /proc/sys/kernel/random/uuid)
         mkdir -p data/uuid/$BASE
