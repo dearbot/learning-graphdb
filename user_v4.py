@@ -438,7 +438,7 @@ def main_grequests():
                 "[%s] top user count: %s count=%s %s/%s" %
                 (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 len(top_user_map), len(u), i+1, split_count))
-            time.sleep(2)
+            time.sleep(3)
             if time.time() - start_time > timeout * 60:
                 print("timeout")
                 return
