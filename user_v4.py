@@ -490,10 +490,10 @@ def load_top(top):
             l = json.loads(l)
             if l.get('followers', {}).get('pageInfo', {}):
                 print('read from history:', d['login'])
-                t.append(l)
+                d["followers"]=l["followers"]
             else:
                 print('no pageinfo history:', d['login'])
-                t.append(d)
+            t.append(d)
     return t
 
 def main():
