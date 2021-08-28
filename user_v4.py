@@ -32,6 +32,8 @@ class RunningInfo:
         self.status[status_code]+=1
 
     def save_u(self, user):
+        if not user:
+            return
         u=user['login']
         if u not in self.users:
             self.users[u] = {}
@@ -373,10 +375,10 @@ def proc_response(res, **kwargs):
             return
         t=json.loads(res.text)
         u=t.get('data', {}).get('user', {})
-        save_data([u])
-        running.save_u(u)
         if not u:
             print(t)
+        save_data([u])
+        running.save_u(u)
     except Exception as e:
         print("proc_response", e)
 
