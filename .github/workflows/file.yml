@@ -64,4 +64,5 @@ jobs:
           git add .
           git commit -m "Add changes" -a
           git push
+          cd ..
         done
