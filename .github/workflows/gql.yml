@@ -39,11 +39,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    # - name: copy jobs file
-    #   run: |
-    #     mkdir -p data/jobs/$GITHUB_RUN_NUMBER
-    #     cd data/jobs
-    #     for i in $(ls -d */); do rsync -a ${i} ../users/; done
     - run: python user_v4.py ${{ secrets.PAT }} ${{ github.event.inputs.timeout }}
       if: github.event_name == 'workflow_dispatch'
     - run: python user_v4.py ${{ secrets.PAT }} 120
@@ -51,11 +46,10 @@ jobs:
     - name: move new files to job folder
       run: |
         for i in $(cat /tmp/users.txt); do if [ -f data/users/${i}.json ]; then mv data/users/${i}.json data/jobs/$GITHUB_RUN_NUMBER/${i}.json; fi; done
-        # cd data/jobs
-        # for i in $(ls -d */); do rsync -a -existing -remove-source-files ../users/ ${i}; done
     - run: python user_v4.py
     - run: cat data/README.md
     - name: check for changes and git push
+      continue-on-error: true
       run: |
         cd data
         git branch --show-current
@@ -71,14 +65,3 @@ jobs:
         else
           echo "NO CHANGED"
         fi
-#     - name: Pushes to another repository
-#       uses: cpina/github-action-push-to-another-repository@main
-#       env:
-#         API_TOKEN_GITHUB: ${{ secrets.PAT }}
-#       with:
-#         source-directory: 'data'
-#         destination-github-username: 'dearbot'
-#         destination-repository-name: 'github-data-user'
-#         user-email: 41898282+github-actions[bot]@users.noreply.github.com
-#         target-branch: main
-#         commit-message: 'Auto Updated'

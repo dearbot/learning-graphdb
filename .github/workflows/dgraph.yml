@@ -22,7 +22,7 @@ jobs:
     #timeout-minutes: 360
     steps:
     - uses: actions/checkout@v2
-    - name: Checkout tools repo
+    - name: Checkout data repo
       uses: actions/checkout@v2
       with:
         repository: dearbot/github-data-user

@@ -38,17 +38,22 @@ jobs:
         git push
       if: github.event_name == 'workflow_dispatch'
     - if: github.event_name == 'schedule'
+      continue-on-error: true
       run: |
         cd data
         XX=`curl -I -k "https://api.github.com/repos/dearbot/max-number-of-commits/commits?per_page=1" | sed -n '/^[Ll]ink:/ s/.*"next".*page=\([0-9]*\).*"last".*/\1/p'`
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        for (( i=0; i<100000; i++))
+        for (( x=0; x<10; x++))
         do
-            UUID=$(cat /proc/sys/kernel/random/uuid)
-            echo $UUID > README.md
-            XX=$(($XX+1))
-            git add .
-            git commit -m "$XX th commit 🚀🚀🚀" -a
+          # each time about 15min
+          for (( i=0; i<100000; i++))
+          do
+              UUID=$(cat /proc/sys/kernel/random/uuid)
+              echo $UUID > README.md
+              XX=$(($XX+1))
+              git add .
+              git commit -m "$XX th commit 🚀🚀🚀" -a
+          done
+          git push
         done
-        git push

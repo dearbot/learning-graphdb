@@ -8,6 +8,8 @@ import grequests
 import requests
 import copy
 
+# https://gql.readthedocs.io/en/v3.0.0a6/
+
 
 token = ''
 level = 0
@@ -17,6 +19,7 @@ timeout = 300  # minutes
 top_user_map={}
 relations=''
 users={} # user + json path
+reqs=[]
 current_dir="./data/jobs/"+os.getenv("GITHUB_RUN_NUMBER", "0")+"/"
 
 class RunningInfo:
@@ -33,8 +36,12 @@ class RunningInfo:
         if u not in self.users:
             self.users[u] = {}
         s=json.dumps(user)
-        count=s.count('login')
-        self.users[u]={"count": count-1}
+        count=s.count('login')-1
+        t = 1
+        if 'count' in self.users[u]:
+            count += self.users[u]['count']
+            t += self.users[u]['time']
+        self.users[u]={"count": count, "time": t}
 
     def output(self):
         with open('./data/README.md', 'a') as f:
@@ -45,11 +52,16 @@ class RunningInfo:
                 f.write("- user real count in this job: %d\n" % len(open('/tmp/users.txt','r').readlines()))
             f.write('\n## Detailed\n\n')
             f.write("current relations of users:\n\n")
-            f.write('| No | User | Count |\n')
-            f.write('| -----: | :-----| ----: |\n')
+            f.write('| No | User | Times | Count(L2) | Avatar | Follower | Following |\n')
+            f.write('| -----: | :-----| ----: | ----: | ---- | ----: | ----: |\n')
             i = 1
             for k, v in self.users.items():
-                f.write('| %d | %s | %d |\n' %(i, k, v['count']))
+                f.write('| %d | %s | %d | %d | <img alt=\'%s\' src="%s" width="40px" /> | %s | %s |\n' %(i, k, v['time'], v['count'], 
+                k,
+                top_user_map.get(k, {}).get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
+                top_user_map.get(k, {}).get('followers', {}).get("totalCount", '0'),
+                top_user_map.get(k, {}).get('following', {}).get("totalCount", '0')
+                ))
                 i+=1
                 
     # call after move user to current job folder in github action        
@@ -149,10 +161,10 @@ def make_query():
     """
     return query % (snode)
 
-def make_user(login, cursor=""):
+def make_user_query_wo_cursor():
     query="""
-    {
-    user(login: "%s") {
+    query($login: String! $number_of_followers:Int!) {
+    user(login: $login) {
         id
         databaseId
         login
@@ -165,7 +177,7 @@ def make_user(login, cursor=""):
         twitterUsername
         createdAt
         updatedAt
-        followers(first: %d %s) {
+        followers(first: $number_of_followers) {
             totalCount
             pageInfo {
                 hasNextPage
@@ -219,10 +231,104 @@ def make_user(login, cursor=""):
         }
     }
     """
-    after = ''
+    return query
+
+def make_user_query_w_cursor():
+    query="""
+    query($login: String! $number_of_followers:Int! $after: String!) {
+    user(login: $login) {
+        id
+        databaseId
+        login
+        name
+        bio
+        avatarUrl(size: 10)
+        company
+        location
+        url
+        twitterUsername
+        createdAt
+        updatedAt
+        followers(first: $number_of_followers after: $after) {
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            nodes {
+                id
+                databaseId
+                login
+                name
+                bio
+                avatarUrl(size: 10)
+                company
+                location
+                url
+                twitterUsername
+                createdAt
+                updatedAt
+                followers(first: 20) {
+                    totalCount
+                    nodes {
+                        id
+                        databaseId
+                        login
+                        name
+                        bio
+                        avatarUrl(size: 10)
+                        company
+                        location
+                        url
+                        twitterUsername
+                        createdAt
+                        updatedAt
+                        followers {
+                            totalCount
+                        }
+                        following {
+                            totalCount
+                        }
+                    }
+                    pageInfo {
+                        hasNextPage
+                        endCursor
+                    }
+                }
+                following {
+                    totalCount
+                }
+            }
+        }
+        }
+    }
+    """
+    return query
+
+def make_user_variable(login, cursor=""):
     if cursor:
-        after = 'after: "' + cursor+'"'
-    return query % (login, 100, after)
+        return {
+            "login": login,
+            "after": cursor,
+            "number_of_followers": 100,
+        }
+    else:
+        return {
+            "login": login,
+            "number_of_followers": 100,
+        }
+
+def make_user(login, cursor=""):
+    if cursor:
+        return {
+            "query": make_user_query_w_cursor(),
+            "variables": make_user_variable(login, cursor) 
+        }
+    else:
+        return {
+            "query": make_user_query_wo_cursor(),
+            "variables": make_user_variable(login, '') 
+        }
 
 def get_top(query):
     headers = {}
@@ -241,12 +347,12 @@ def get_top(query):
         # {'data': None, 'errors': [{'message': 'Something went wrong while executing your query. This may be the result of a timeout, or it could be a GitHub bug. Please include `A192:7CFA:EB2D34:1B4927F:611B5598` when reporting this issue.'}]}
         return None
 
-def get_user(query):
+def get_user(gql):
     headers = {}
     if token:
         headers['Authorization'] = 'token ' + token
     try:
-        res=requests.post('https://api.github.com/graphql', headers=headers, json={'query': query})
+        res=requests.post('https://api.github.com/graphql', headers=headers, json=gql)
         t=json.loads(res.text)
         return [t['data']['user']]
     except Exception as e:
@@ -260,6 +366,10 @@ def proc_response(res, **kwargs):
     running.save_s(status_code=res.status_code)
     try:
         if res.status_code != 200:
+            X=json.loads(res.request.body)
+            print(X.get('variables', {}))
+            global reqs
+            reqs.append(X.get('variables', {}))
             return
         t=json.loads(res.text)
         u=t.get('data', {}).get('user', {})
@@ -268,7 +378,7 @@ def proc_response(res, **kwargs):
         if not u:
             print(t)
     except Exception as e:
-        print("get_users", e)
+        print("proc_response", e)
 
 
 def err_handler(request, exception):
@@ -285,13 +395,23 @@ def get_users(u):
             del top_user_map[k]
             print(k, "finish")
             continue
-        query=make_user(k, v['followers']['pageInfo']['endCursor'])
         req=grequests.post(
             'https://api.github.com/graphql', 
             headers=headers, 
-            json={'query': query}, 
+            json=make_user(k, v['followers']['pageInfo']['endCursor']),
             hooks={"response":proc_response})
         req_list.append(req)
+    
+    # retry failed
+    if reqs:
+        for r in reqs[:10]:
+            print("RETRY →", r)
+            req=grequests.post(
+                'https://api.github.com/graphql', 
+                headers=headers, 
+                json=r,
+                hooks={"response":proc_response})
+            req_list.append(req)
 
     grequests.map(req_list, size=10, exception_handler=err_handler)
 
@@ -398,8 +518,7 @@ def main():
                 del top_user_map[k]
                 print("finish for followers: ", k)
                 continue
-            gql=make_user(k, v['followers']['pageInfo']['endCursor'])
-            d=get_user(gql)
+            d=get_user(make_user(k, v['followers']['pageInfo']['endCursor']))
             save_data(d)
 
             with open('./data/README.md', 'w') as f:

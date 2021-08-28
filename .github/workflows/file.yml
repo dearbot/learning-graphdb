@@ -25,6 +25,7 @@ jobs:
         swap-size-mb: 1024
         remove-dotnet: 'true'
         remove-android: 'true'
+        remove-haskell: 'true'
     - uses: actions/checkout@v2
     - name: Checkout tools repo
       uses: actions/checkout@v2
@@ -33,35 +34,34 @@ jobs:
         token: ${{ secrets.PAT }}
         ref: main
         path: data
-    - run: |
-        df
+    - name: process and git push
+      continue-on-error: true
+      run: |
+        df -h
         df -i
         pwd
         du -sh data
-        du -sh .
+        
         mkdir -p data/data
-        BASE=$(cat /proc/sys/kernel/random/uuid)
-        mkdir -p data/uuid/$BASE
-        for (( i=0; i<50000; i++))
+
+        for (( x=0; x<10; x++))
         do
-            UUID=$(cat /proc/sys/kernel/random/uuid)
-            touch data/uuid/$BASE/$UUID.txt
-        done
-        cd data
-        WC=$(ls -lR| grep "^-" | wc -l)
-        echo -e "# The Max number of files\n\n Current: **$[WC-2]** files" > ./README.md
-    - name: check for changes and git push
-      continue-on-error: true
-      run: |
-        cd data
-        git branch --show-current
-        if [[ `git status -s` ]]; then
-          echo "CHANGED"
+          # each time about 15min
+          BASE=$(cat /proc/sys/kernel/random/uuid)
+          mkdir -p data/uuid/$BASE
+          for (( i=0; i<50000; i++))
+          do
+              UUID=$(cat /proc/sys/kernel/random/uuid)
+              touch data/uuid/$BASE/$UUID.txt
+          done
+
+          cd data
+          WC=$(ls -lR| grep "^-" | wc -l)
+          echo -e "# The Max number of files\n\n Current: **$[WC-2]** files" > ./README.md
+
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .
           git commit -m "Add changes" -a
           git push
-        else
-          echo "NO CHANGED"
-        fi
+        done
