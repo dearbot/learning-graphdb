@@ -116,7 +116,7 @@ def make_query():
         login
         name
         bio
-        avatarUrl(size: 10)
+        avatarUrl(size: 40)
         company
         location
         url
@@ -170,7 +170,7 @@ def make_user_query_wo_cursor():
         login
         name
         bio
-        avatarUrl(size: 10)
+        avatarUrl(size: 40)
         company
         location
         url
@@ -189,7 +189,7 @@ def make_user_query_wo_cursor():
                 login
                 name
                 bio
-                avatarUrl(size: 10)
+                avatarUrl(size: 40)
                 company
                 location
                 url
@@ -204,7 +204,7 @@ def make_user_query_wo_cursor():
                         login
                         name
                         bio
-                        avatarUrl(size: 10)
+                        avatarUrl(size: 40)
                         company
                         location
                         url
@@ -242,7 +242,7 @@ def make_user_query_w_cursor():
         login
         name
         bio
-        avatarUrl(size: 10)
+        avatarUrl(size: 40)
         company
         location
         url
@@ -261,7 +261,7 @@ def make_user_query_w_cursor():
                 login
                 name
                 bio
-                avatarUrl(size: 10)
+                avatarUrl(size: 40)
                 company
                 location
                 url
@@ -276,7 +276,7 @@ def make_user_query_w_cursor():
                         login
                         name
                         bio
-                        avatarUrl(size: 10)
+                        avatarUrl(size: 40)
                         company
                         location
                         url
