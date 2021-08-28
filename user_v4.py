@@ -401,17 +401,6 @@ def get_users(u):
             json=make_user(k, v['followers']['pageInfo']['endCursor']),
             hooks={"response":proc_response})
         req_list.append(req)
-    
-    # retry failed
-    if reqs:
-        for r in reqs[:10]:
-            print("RETRY →", r)
-            req=grequests.post(
-                'https://api.github.com/graphql', 
-                headers=headers, 
-                json=r,
-                hooks={"response":proc_response})
-            req_list.append(req)
 
     grequests.map(req_list, size=10, exception_handler=err_handler)
 
