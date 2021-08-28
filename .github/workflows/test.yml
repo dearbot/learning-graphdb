@@ -18,9 +18,9 @@ jobs:
     - name: Checkout tools repo
       uses: actions/checkout@v2
       with:
-        repository: dearbot/github-data-user
+        repository: dearbot/max-number-of-files
         token: ${{ secrets.PAT }}
-        ref: graphql
+        ref: main
         path: data
         lfs: true
     - name: Set up Python 3.9
@@ -31,34 +31,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - run: |
-        path="./data/users"
-        users=$(ls $path)
-        dirs=$(ls ./data/jobs)
-        c=0
-        for d in $dirs
-        do
-            echo "jobs:" $d
-            if [ -d ./data/jobs/$d ]; then
-                us=$(ls ./data/jobs/$d)
-                for u in $us
-                do
-                    if [[ "$users" =~ "$u" ]]; then
-                        echo ./data/jobs/$d/$u "in user"
-                        rm -rf ./data/jobs/$d/$u
-                        c=$(($c+1))
-                        if [ $c == 5000 ]; then
-                            echo $c over
-                            exit 0
-                        fi
-                    else
-                        # echo $u "not in user"
-                        users+=" $u"
-                        # echo $users ${#users[@]}
-                    fi
-                done
-            fi
-        done
     - name: check for changes and git push
       run: |
         echo $GITHUB_RUN_ID
@@ -67,7 +39,8 @@ jobs:
         git branch --show-current
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add .
+        git rm data/data
+        # git add .
         git commit -m "Add changes"
         git push
        
