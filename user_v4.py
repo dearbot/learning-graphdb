@@ -7,6 +7,8 @@ import json
 import grequests
 import requests
 import copy
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 # https://gql.readthedocs.io/en/v3.0.0a6/
 
@@ -382,6 +384,7 @@ def proc_response(res, **kwargs):
         if not u:
             print(t)
         save_data([u])
+        top_user_map[u['login']]['ready_fetch']=True
         running.save_u(u)
     except Exception as e:
         print("proc_response", e)
@@ -396,25 +399,35 @@ def get_users(u):
         headers['Authorization'] = 'token ' + token
 
     req_list = []
-    for k, v in u.items():
-        if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
-            del top_user_map[k]
-            print(k, "finish")
-            continue
-        req=grequests.post(
-            'https://api.github.com/graphql', 
-            headers=headers, 
-            json=make_user(k, v['followers']['pageInfo']['endCursor']),
-            hooks={"response":proc_response})
-        # req_list.append(req)
-        time.sleep(2)
-        print("== send", k, v['followers']['pageInfo']['endCursor'])
-        grequests.send(req, grequests.Pool(100))
-        if time.time() - start_time > timeout * 60:
-            print("timeout")
-            return False
-    
-    # grequests.map(req_list, size=10, exception_handler=err_handler)
+    processes = []
+    timeout_flag=False
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for k, v in u.items():
+            if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
+                del top_user_map[k]
+                print(k, "finish")
+                continue
+            if not v.get('ready_fetch', False):
+                continue
+            
+            req=grequests.post(
+                'https://api.github.com/graphql', 
+                headers=headers, 
+                json=make_user(k, v['followers']['pageInfo']['endCursor']),
+                hooks={"response":proc_response})
+
+            # req_list.append(req)
+            time.sleep(2)
+            processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "== send", k, v['followers']['pageInfo']['endCursor'])
+            top_user_map[k]['ready_fetch']=False
+
+            if time.time() - start_time > timeout * 30:
+                print("make users timeout")
+                timeout_flag = True
+                break
+    if timeout_flag:
+        return False
     return True
 
 
@@ -453,6 +466,7 @@ def save_data(dat, root=True):
             users[user]=path
             if root:
                 global top_user_map
+                d['ready_fetch']=True
                 top_user_map[user]=d
         
 
@@ -509,7 +523,8 @@ def load_top(top):
     # update user
     for i in t:
         global top_user_map
-        top_user_map[i['login']]=t
+        i['ready_fetch']=True
+        top_user_map[i['login']]=i
     return t
 
 def main():
@@ -557,19 +572,17 @@ def load_users():
 
 def main_grequests():
     while True:
-        split_count = 1
-        for i in range(split_count):
-            u={key: value for ii, (key, value) in enumerate(top_user_map.items()) if ii % split_count == i}
-            print(
-                "[%s] top user count: %s count=%s %s/%s" %
-                (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                len(top_user_map), len(u), i+1, split_count))
-            # time.sleep(3)
-            if time.time() - start_time > timeout * 60:
-                print("timeout")
-                return
-            if not get_users(u):
-                return
+        u=top_user_map
+        print(
+            "[%s] top user count: %s count=%s" %
+            (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            len(top_user_map), len(u)))
+        # time.sleep(3)
+        if time.time() - start_time > timeout * 60:
+            print("main_grequests timeout")
+            return
+        if not get_users(u):
+            return
         
         with open('./data/README.md', 'w') as f:
             f.write('## Github User Summary\n\n')
