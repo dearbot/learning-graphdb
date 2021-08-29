@@ -53,22 +53,23 @@ class RunningInfo:
             f.write("- status code: `%s`\n" % self.status)
             f.write("- user total count in this job: `%d`\n" % sum([v['count'] for k,v in self.users.items()]))
             if os.path.exists('/tmp/users.txt'):
-                f.write("- user real count in this job: %d\n" % len(open('/tmp/users.txt','r').readlines()))
+                f.write("- user real count in this job: `%d`\n" % len(open('/tmp/users.txt','r').readlines()))
             f.write('\n## Detailed\n\n')
             f.write("current relations of users:\n\n")
-            f.write('| No | User | Times | Count(L2) | Avatar | Follower | Following |\n')
-            f.write('| -----: | :-----| ----: | ----: | ---- | ----: | ----: |\n')
+            f.write('| No | User | Avatar | Times | Count(L2) | Follower | Following | Finished |\n')
+            f.write('| -----: | :----- | ---- | ----: | ----: | ----: | ----: | :---- |\n')
             i = 1
-            for k, v in self.users.items():
-                f.write('| %d | [%s](%s) | %d | %d | <img alt=\'%s\' src="%s" width="40px" /> | %s | %s |\n' %(
+            for k, v in top_user_map.items():
+                f.write('| %d | [%s](%s) | <img alt=\'%s\' src="%s" width="40px" /> | %d | %d | %s | %s | %s |\n' %(
                     i, 
-                    k,  users.get(k, "").replace('./data/', './'),
-                    v['time'],
-                    v['count'], 
-                    k,
-                    top_user_map.get(k, {}).get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
-                    top_user_map.get(k, {}).get('followers', {}).get("totalCount", '0'),
-                    top_user_map.get(k, {}).get('following', {}).get("totalCount", '0')
+                    k, users.get(k, "").replace('./data/', './'),
+                    k, v.get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
+                    self.users.get(k, {}).get('time', 0),
+                    self.users.get(k, {}).get('count', 0),
+                    v.get('followers', {}).get("totalCount", '0'),
+                    v.get('following', {}).get("totalCount", '0'),
+                    # use next curor check finish
+                    not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False),
                 ))
                 i+=1
                 
@@ -370,7 +371,7 @@ def get_user(gql):
 
 def proc_response(res, **kwargs):
     # do something ..
-    print("== Response:", res.status_code, json.loads(res.request.body).get('variables', {}), res.elapsed.total_seconds())
+    print("== Response:", res.status_code, res.elapsed.total_seconds())
     running.save_s(status_code=res.status_code)
     try:
         if res.status_code != 200:
@@ -404,7 +405,7 @@ def get_users(u):
     with ThreadPoolExecutor(max_workers=10) as executor:
         for k, v in u.items():
             if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
-                del top_user_map[k]
+                # del top_user_map[k]
                 print(k, "finish")
                 continue
             if not v.get('ready_fetch', False):
@@ -537,7 +538,7 @@ def main():
             break
         for k, v in u.items():
             if not v['followers']['pageInfo']['hasNextPage']:
-                del top_user_map[k]
+                # del top_user_map[k]
                 print("finish for followers: ", k)
                 continue
             d=get_user(make_user(k, v['followers']['pageInfo']['endCursor']))
@@ -572,26 +573,31 @@ def load_users():
 
 def main_grequests():
     while True:
-        u=copy.deepcopy(top_user_map)
-        print(
-            "[%s] top user count: %s count=%s" %
-            (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            len(top_user_map), len(u)))
-        # time.sleep(3)
+        if len(top_user_map) == 0:
+            break
+
+        if not any([v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False) for v in top_user_map.values()]):
+            break
+
         if time.time() - start_time > timeout * 60:
             print("main_grequests timeout")
-            return
-        if not get_users(u):
-            return
+            break
         
-        with open('./data/README.md', 'w') as f:
-            f.write('## Github User Summary\n\n')
-            f.write("- Top User Count: %d\n" % len(top_user_map))
-            f.write("- Relations: %d\n" % len(relations.split('\n')))
-            f.write("- Real User Updated: %d\n" % len(users))
-        output_relation()
-        if len(top_user_map) == 0:
-            return
+        u=copy.deepcopy(top_user_map)
+        print(
+            (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            len(top_user_map), len(u)))
+
+        if not get_users(u):
+            break
+        
+        
+    with open('./data/README.md', 'w') as f:
+        f.write('## Github User Summary\n\n')
+        f.write("- Top User Count: %d\n" % len(top_user_map))
+        f.write("- Relations: %d\n" % len(relations.split('\n')))
+        f.write("- Real User Updated: %d\n" % len(users))
+    output_relation()
 
 
 if __name__ == "__main__":
@@ -599,6 +605,8 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         running.output_jobs()
         exit(0)
+
+    # args > 1 for processing
     if len(sys.argv) > 1:
         token = sys.argv[1]
     if len(sys.argv) > 2:
@@ -609,7 +617,11 @@ if __name__ == "__main__":
 
     query = make_query()
     top=get_top(query)
-    top=load_top(top)
+    # python user.py token timeout replace
+    if len(sys.argv) > 3:
+        top=top
+    else:
+        top=load_top(top)
     if not top:
         print('top is null')
         exit(0)

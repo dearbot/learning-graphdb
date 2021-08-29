@@ -10,5 +10,10 @@
 ## commits
 
 ## github-users
+1. async + multiprocess
+2. avatar size
+3. graphql variables
+4. 
+   
 
 
