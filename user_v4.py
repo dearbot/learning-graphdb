@@ -388,7 +388,6 @@ def proc_response(res, **kwargs):
         if not u:
             print(t)
         save_data([u])
-        top_user_map[u['login']]['ready_fetch']=True
         running.save_u(u)
     except Exception as e:
         print("proc_response", e)
@@ -473,6 +472,7 @@ def save_data(dat, root=True):
                 global top_user_map
                 d['ready_fetch']=True
                 top_user_map[user]=d
+                print(user, 'true')
         
 
 def load_relation_data():
@@ -598,7 +598,7 @@ def main_grequests():
                 print("== waiting...")
                 time.sleep(2)
                 continue
-
+            global top_user_map
             u=copy.deepcopy(top_user_map)
             print(
                 (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
@@ -633,10 +633,7 @@ def main_grequests():
             # timeout in request for loop
             if timeout_flag:
                 break
-
             print("new round")
-        return
-
         
     with open('./data/README.md', 'w') as f:
         f.write('## Github User Summary\n\n')
