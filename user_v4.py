@@ -557,7 +557,7 @@ def load_users():
 
 def main_grequests():
     while True:
-        split_count = 100
+        split_count = 1
         for i in range(split_count):
             u={key: value for ii, (key, value) in enumerate(top_user_map.items()) if ii % split_count == i}
             print(
