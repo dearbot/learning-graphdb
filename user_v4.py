@@ -60,9 +60,9 @@ class RunningInfo:
             f.write('| -----: | :----- | ---- | ----: | ----: | ----: | ----: | :---- |\n')
             i = 1
             for k, v in top_user_map.items():
-                f.write('| %d | [%s](%s) | <img alt=\'%s\' src="%s" width="40px" /> | %d | %d | %s | %s | %s |\n' %(
+                f.write('| %d | [%s(%s)](%s) | <img alt=\'%s\' src="%s" width="40px" /> | %d | %d | %s | %s | %s |\n' %(
                     i, 
-                    k, users.get(k, "").replace('./data/', './'),
+                    v.get('name', '-'), k, users.get(k, "").replace('./data/', './'),
                     k, v.get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
                     self.users.get(k, {}).get('time', 0),
                     self.users.get(k, {}).get('count', 0),
@@ -418,7 +418,7 @@ def get_users(u):
                 hooks={"response":proc_response})
 
             # req_list.append(req)
-            time.sleep(1)
+            time.sleep(2)
             processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
             print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "== send", k, v['followers']['pageInfo']['endCursor'])
             top_user_map[k]['ready_fetch']=False
