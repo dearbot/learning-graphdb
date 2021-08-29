@@ -426,7 +426,7 @@ def get_users(u):
             print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "== send", k, v['followers']['pageInfo']['endCursor'])
             top_user_map[k]['ready_fetch']=False
 
-            if time.time() - start_time > timeout * 30:
+            if time.time() - start_time > timeout * 60:
                 print("make users timeout")
                 timeout_flag = True
                 break
