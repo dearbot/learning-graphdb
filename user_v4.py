@@ -418,7 +418,7 @@ def get_users(u):
                 hooks={"response":proc_response})
 
             # req_list.append(req)
-            time.sleep(2)
+            time.sleep(1)
             processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
             print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "== send", k, v['followers']['pageInfo']['endCursor'])
             top_user_map[k]['ready_fetch']=False
