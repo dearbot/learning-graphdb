@@ -172,7 +172,7 @@ def make_query():
 
 def make_user_query_wo_cursor():
     query="""
-    query($login: String! $number_of_followers:Int!) {
+    query($login: String! $n_of_followers:Int!) {
     user(login: $login) {
         id
         databaseId
@@ -186,7 +186,7 @@ def make_user_query_wo_cursor():
         twitterUsername
         createdAt
         updatedAt
-        followers(first: $number_of_followers) {
+        followers(first: $n_of_followers) {
             totalCount
             pageInfo {
                 hasNextPage
@@ -244,7 +244,7 @@ def make_user_query_wo_cursor():
 
 def make_user_query_w_cursor():
     query="""
-    query($login: String! $number_of_followers:Int! $after: String!) {
+    query($login: String! $n_of_followers:Int! $after: String!) {
     user(login: $login) {
         id
         databaseId
@@ -258,7 +258,7 @@ def make_user_query_w_cursor():
         twitterUsername
         createdAt
         updatedAt
-        followers(first: $number_of_followers after: $after) {
+        followers(first: $n_of_followers after: $after) {
             totalCount
             pageInfo {
                 hasNextPage
@@ -319,12 +319,12 @@ def make_user_variable(login, cursor=""):
         return {
             "login": login,
             "after": cursor,
-            "number_of_followers": 100,
+            "n_of_followers": 100,
         }
     else:
         return {
             "login": login,
-            "number_of_followers": 100,
+            "n_of_followers": 100,
         }
 
 def make_user(login, cursor=""):
@@ -371,7 +371,7 @@ def get_user(gql):
 
 def proc_response(res, **kwargs):
     # do something ..
-    print("== Response:", res.status_code, res.elapsed.total_seconds())
+    print("== Response:", res.status_code, json.loads(res.request.body).get('variables', {}), res.elapsed.total_seconds())
     running.save_s(status_code=res.status_code)
     try:
         if res.status_code != 200:
