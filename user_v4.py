@@ -432,6 +432,7 @@ def get_users(u):
                 break
     if timeout_flag:
         return False
+    print("new round")
     return True
 
 
@@ -585,7 +586,12 @@ def main_grequests():
         if time.time() - start_time > timeout * 60:
             print("main_grequests timeout")
             break
-        
+
+        if not any([v.get('ready_fetch', False) for v in top_user_map.values()]):
+            print("== waiting...")
+            time.sleep(1)
+            continue
+
         u=copy.deepcopy(top_user_map)
         print(
             (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
