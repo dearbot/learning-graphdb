@@ -58,11 +58,15 @@ class RunningInfo:
             f.write('| -----: | :-----| ----: | ----: | ---- | ----: | ----: |\n')
             i = 1
             for k, v in self.users.items():
-                f.write('| %d | %s | %d | %d | <img alt=\'%s\' src="%s" width="40px" /> | %s | %s |\n' %(i, k, v['time'], v['count'], 
-                k,
-                top_user_map.get(k, {}).get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
-                top_user_map.get(k, {}).get('followers', {}).get("totalCount", '0'),
-                top_user_map.get(k, {}).get('following', {}).get("totalCount", '0')
+                f.write('| %d | [%s](%s) | %d | %d | <img alt=\'%s\' src="%s" width="40px" /> | %s | %s |\n' %(
+                    i, 
+                    k,  users.get(k, "").replace('./data/', './'),
+                    v['time'],
+                    v['count'], 
+                    k,
+                    top_user_map.get(k, {}).get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
+                    top_user_map.get(k, {}).get('followers', {}).get("totalCount", '0'),
+                    top_user_map.get(k, {}).get('following', {}).get("totalCount", '0')
                 ))
                 i+=1
                 
@@ -364,7 +368,7 @@ def get_user(gql):
 
 def proc_response(res, **kwargs):
     # do something ..
-    print("== Response:", res.status_code)
+    print("== Response:", res.status_code, json.loads(res.request.body).get('variables', {}), res.elapsed.total_seconds())
     running.save_s(status_code=res.status_code)
     try:
         if res.status_code != 200:
@@ -402,9 +406,16 @@ def get_users(u):
             headers=headers, 
             json=make_user(k, v['followers']['pageInfo']['endCursor']),
             hooks={"response":proc_response})
-        req_list.append(req)
-
-    grequests.map(req_list, size=10, exception_handler=err_handler)
+        # req_list.append(req)
+        time.sleep(2)
+        print("== send", k, v['followers']['pageInfo']['endCursor'])
+        grequests.send(req, grequests.Pool(100))
+        if time.time() - start_time > timeout * 60:
+            print("timeout")
+            return False
+    
+    # grequests.map(req_list, size=10, exception_handler=err_handler)
+    return True
 
 
 def save_data(dat, root=True):
@@ -487,13 +498,18 @@ def load_top(top):
             continue
         with open(users[d['login']], 'r') as f:
             l = f.read()
-            l = json.loads(l)
-            if l.get('followers', {}).get('pageInfo', {}):
-                print('read from history:', d['login'])
-                d["followers"]=l["followers"]
-            else:
-                print('no pageinfo history:', d['login'])
+            if l:
+                l = json.loads(l)
+                if l.get('followers', {}).get('pageInfo', {}):
+                    print('read from history:', d['login'])
+                    d["followers"]=l["followers"]
+                else:
+                    print('no pageinfo history:', d['login'])
             t.append(d)
+    # update user
+    for i in t:
+        global top_user_map
+        top_user_map[i['login']]=t
     return t
 
 def main():
@@ -541,26 +557,28 @@ def load_users():
 
 def main_grequests():
     while True:
-        split_count = 20
+        split_count = 100
         for i in range(split_count):
             u={key: value for ii, (key, value) in enumerate(top_user_map.items()) if ii % split_count == i}
             print(
                 "[%s] top user count: %s count=%s %s/%s" %
                 (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 len(top_user_map), len(u), i+1, split_count))
-            time.sleep(3)
+            # time.sleep(3)
             if time.time() - start_time > timeout * 60:
                 print("timeout")
                 return
-            res=get_users(u)
-            with open('./data/README.md', 'w') as f:
-                f.write('## Github User Summary\n\n')
-                f.write("- Top User Count: %d\n" % len(top_user_map))
-                f.write("- Relations: %d\n" % len(relations.split('\n')))
-                f.write("- Real User Updated: %d\n" % len(users))
-            output_relation()
-            if len(top_user_map) == 0:
+            if not get_users(u):
                 return
+        
+        with open('./data/README.md', 'w') as f:
+            f.write('## Github User Summary\n\n')
+            f.write("- Top User Count: %d\n" % len(top_user_map))
+            f.write("- Relations: %d\n" % len(relations.split('\n')))
+            f.write("- Real User Updated: %d\n" % len(users))
+        output_relation()
+        if len(top_user_map) == 0:
+            return
 
 
 if __name__ == "__main__":
