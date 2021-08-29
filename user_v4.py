@@ -572,7 +572,7 @@ def load_users():
 
 def main_grequests():
     while True:
-        u=top_user_map
+        u=copy.deepcopy(top_user_map)
         print(
             "[%s] top user count: %s count=%s" %
             (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
