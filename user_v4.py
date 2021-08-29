@@ -576,30 +576,68 @@ def load_users():
             
 
 def main_grequests():
-    while True:
-        if len(top_user_map) == 0:
-            break
-
-        if not any([v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False) for v in top_user_map.values()]):
-            break
-
-        if time.time() - start_time > timeout * 60:
-            print("main_grequests timeout")
-            break
-
-        if not any([v.get('ready_fetch', False) for v in top_user_map.values()]):
-            print("== waiting...")
-            time.sleep(1)
-            continue
-
-        u=copy.deepcopy(top_user_map)
-        print(
-            (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            len(top_user_map), len(u)))
-
-        if not get_users(u):
-            break
+    headers = {}
+    if token:
+        headers['Authorization'] = 'token ' + token
         
+    processes = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        while True:
+            if len(top_user_map) == 0:
+                break
+
+            if not any([v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False) for v in top_user_map.values()]):
+                break
+
+            global start_time
+            if time.time() - start_time > timeout * 60:
+                print("main_grequests timeout")
+                break
+
+            if not any([v.get('ready_fetch', False) for v in top_user_map.values()]):
+                print("== waiting...")
+                time.sleep(2)
+                continue
+
+            u=copy.deepcopy(top_user_map)
+            print(
+                (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                len(top_user_map), len(u)))
+
+            # request
+            timeout_flag=False
+            for k, v in u.items():
+                if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
+                    # del top_user_map[k]
+                    print(k, "finish")
+                    continue
+                if not v.get('ready_fetch', False):
+                    continue
+                
+                req=grequests.post(
+                    'https://api.github.com/graphql', 
+                    headers=headers, 
+                    json=make_user(k, v['followers']['pageInfo']['endCursor']),
+                    hooks={"response":proc_response})
+
+                # req_list.append(req)
+                # time.sleep(2)
+                # processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "== send", k, v['followers']['pageInfo']['endCursor'])
+                top_user_map[k]['ready_fetch']=False
+
+                if time.time() - start_time > timeout * 60:
+                    print("make users timeout")
+                    timeout_flag = True
+                    break
+
+            # timeout in request for loop
+            if timeout_flag:
+                break
+
+            print("new round")
+        return
+
         
     with open('./data/README.md', 'w') as f:
         f.write('## Github User Summary\n\n')
