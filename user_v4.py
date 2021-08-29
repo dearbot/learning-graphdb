@@ -81,6 +81,8 @@ class RunningInfo:
             f.write('other jobs count:\n')
             f.write('| JobNo | Count |\n')
             f.write('| -----: | -----: |\n')
+
+            # read from folder
             if os.path.exists('./data/jobs'):
                 dirs=os.listdir('./data/jobs')
                 for i in sorted([int(d) for d in dirs]):
@@ -88,9 +90,10 @@ class RunningInfo:
                     if os.path.isdir("./data/jobs/"+i):
                         f.write("| %s | %d |\n" % (i, len(os.listdir('./data/jobs/'+i))))
                         total += len(os.listdir('./data/jobs/'+i))
-            f.write("| %s | %d |\n" % ('users', len(os.listdir('./data/users'))))
+            # save users folder and total
+            f.write("| users | %d |\n" % (len(os.listdir('./data/users'))))
             total += len(os.listdir('./data/users'))
-            f.write('| %s | %d |\n' % ('total', total))
+            f.write('| **total** | %d |\n' % (total))
             
 
 # running
