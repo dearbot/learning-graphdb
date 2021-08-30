@@ -44,9 +44,9 @@ jobs:
           cd data
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git lfs install
-          git lfs track "microsoft/*.json"
-          git add .gitattributes
+          # git lfs install
+          # git lfs track "microsoft/*.json"
+          # git add .gitattributes
           git add .
           git commit -m "commit 🚀🚀🚀" -a
           git push
