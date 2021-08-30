@@ -583,6 +583,7 @@ def main_grequests():
     processes = []
     with ThreadPoolExecutor(max_workers=10) as executor:
         while True:
+            global top_user_map
             if len(top_user_map) == 0:
                 break
 
@@ -594,11 +595,11 @@ def main_grequests():
                 print("main_grequests timeout")
                 break
 
-            if not any([v.get('ready_fetch', False) for v in top_user_map.values()]):
+            if not any([v.get('ready_fetch', False) for v in top_user_map.values() if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)]):
                 print("== waiting...")
                 time.sleep(2)
                 continue
-            global top_user_map
+
             u=copy.deepcopy(top_user_map)
             print(
                 (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
@@ -609,7 +610,7 @@ def main_grequests():
             for k, v in u.items():
                 if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
                     # del top_user_map[k]
-                    print(k, "finish")
+                    # print(k, "finish")
                     continue
                 if not v.get('ready_fetch', False):
                     continue
