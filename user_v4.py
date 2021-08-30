@@ -168,7 +168,7 @@ def make_query():
         resetAt
         used
     }
-    search(query: "", type: USER, first: 10, after: "Y3Vyc29yOjEwMA==") {
+    search(query: "", type: USER, first: 100, after: "Y3Vyc29yOjEwMA==") {
         userCount
         %s
     }
