@@ -168,7 +168,7 @@ def make_query():
         resetAt
         used
     }
-    search(query: "", type: USER, first: 100, after: "Y3Vyc29yOjEwMA==") {
+    search(query: "", type: USER, first: 10, after: "Y3Vyc29yOjEwMA==") {
         userCount
         %s
     }
@@ -546,7 +546,7 @@ def main_grequests():
         headers['Authorization'] = 'token ' + token
         
     processes = []
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=100) as executor:
         while True:
             global top_user_map
             if len(top_user_map) == 0:
