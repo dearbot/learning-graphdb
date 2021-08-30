@@ -377,14 +377,19 @@ def get_user(gql):
 
 def proc_response(res, **kwargs):
     # do something ..
-    print("🎵🎵 Response:", res.status_code, json.loads(res.request.body).get('variables', {}), res.elapsed.total_seconds())
+    X=json.loads(res.request.body).get('variables', {})
+    print("🎵🎵 Response:", res.status_code, X, res.elapsed.total_seconds())
     running.save_s(status_code=res.status_code)
+    # rework...
+    global top_user_map
+    n=X.get('login', '')
+    if n in top_user_map:
+        top_user_map[n]['ready_fetch']=True
+        print(n, "reworker in response.")
     try:
         if res.status_code != 200:
-            X=json.loads(res.request.body)
-            print(X.get('variables', {}))
             global reqs
-            reqs.append(X.get('variables', {}))
+            reqs.append(X)
             return
         t=json.loads(res.text)
         u=t.get('data', {}).get('user', {})
@@ -598,7 +603,7 @@ def main_grequests():
             # timeout in request for loop
             if timeout_flag:
                 break
-            print("new round")
+            print("new round", len(processes))
         
     with open('./data/README.md', 'w') as f:
         f.write('## Github User Summary\n\n')
