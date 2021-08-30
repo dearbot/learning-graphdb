@@ -396,44 +396,6 @@ def proc_response(res, **kwargs):
 def err_handler(request, exception):
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "request error", exception)
 
-def get_users(u):
-    headers = {}
-    if token:
-        headers['Authorization'] = 'token ' + token
-
-    req_list = []
-    processes = []
-    timeout_flag=False
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        for k, v in u.items():
-            if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
-                # del top_user_map[k]
-                print(k, "finish")
-                continue
-            if not v.get('ready_fetch', False):
-                continue
-            
-            req=grequests.post(
-                'https://api.github.com/graphql', 
-                headers=headers, 
-                json=make_user(k, v['followers']['pageInfo']['endCursor']),
-                hooks={"response":proc_response})
-
-            # req_list.append(req)
-            time.sleep(2)
-            processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
-            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "== send", k, v['followers']['pageInfo']['endCursor'])
-            top_user_map[k]['ready_fetch']=False
-
-            if time.time() - start_time > timeout * 60:
-                print("make users timeout")
-                timeout_flag = True
-                break
-    if timeout_flag:
-        return False
-    print("new round")
-    return True
-
 
 def save_data(dat, root=True):
     if not dat:
@@ -472,7 +434,7 @@ def save_data(dat, root=True):
                 global top_user_map
                 d['ready_fetch']=True
                 top_user_map[user]=d
-                print(user, 'true')
+                print(user, 'ready true')
         
 
 def load_relation_data():
@@ -594,16 +556,15 @@ def main_grequests():
             if time.time() - start_time > timeout * 60:
                 print("main_grequests timeout")
                 break
-
-            if not any([v.get('ready_fetch', False) for v in top_user_map.values() if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)]):
+            x={k:v for k, v in top_user_map.items() if v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)}
+            if not any([v.get('ready_fetch', False) for k, v in x.items()]):
                 print("💤💤 waiting...")
                 time.sleep(2)
                 continue
 
-            u=copy.deepcopy(top_user_map)
-            print(
-                (time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                len(top_user_map), len(u)))
+            x={k:v for k, v in x.items() if v.get('ready_fetch', False)}
+            u=copy.deepcopy(x)
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), len(top_user_map), len(u))
 
             # request
             timeout_flag=False
