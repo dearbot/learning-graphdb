@@ -374,7 +374,7 @@ def get_user(gql):
 
 def proc_response(res, **kwargs):
     # do something ..
-    print("== Response:", res.status_code, json.loads(res.request.body).get('variables', {}), res.elapsed.total_seconds())
+    print("🎵🎵 Response:", res.status_code, json.loads(res.request.body).get('variables', {}), res.elapsed.total_seconds())
     running.save_s(status_code=res.status_code)
     try:
         if res.status_code != 200:
@@ -596,7 +596,7 @@ def main_grequests():
                 break
 
             if not any([v.get('ready_fetch', False) for v in top_user_map.values() if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)]):
-                print("== waiting...")
+                print("💤💤 waiting...")
                 time.sleep(2)
                 continue
 
@@ -623,7 +623,7 @@ def main_grequests():
 
                 time.sleep(2)
                 processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
-                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "== send", k, v['followers']['pageInfo']['endCursor'])
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", k, v['followers']['pageInfo']['endCursor'])
                 top_user_map[k]['ready_fetch']=False
 
                 if time.time() - start_time > timeout * 60:
