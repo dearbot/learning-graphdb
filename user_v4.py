@@ -56,20 +56,23 @@ class RunningInfo:
                 f.write("- user real count in this job: `%d`\n" % len(open('/tmp/users.txt','r').readlines()))
             f.write('\n## Detailed\n\n')
             f.write("current relations of users:\n\n")
-            f.write('| No | User | Avatar | Times | Count(L2) | Follower | Following | Finished |\n')
-            f.write('| -----: | :----- | ---- | ----: | ----: | ----: | ----: | :---- |\n')
+            f.write('| No | User | Avatar | Follower | Following | Finished | Times | Count(L2) |\n')
+            f.write('| -----: | :----- | ----: | ----: | ----: | :---- | ----: | :---- |\n')
             i = 1
             for k, v in top_user_map.items():
-                f.write('| %d | [%s(%s)](%s) | <img alt=\'%s\' src="%s" width="40px" /> | %d | %d | %s | %s | %s |\n' %(
+                fin="False"
+                if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
+                    fin="<font color=yellow>True</font>"
+                f.write('| %d | [%s<br>(%s)](%s) | <img alt=\'%s\' src="%s" width="40px" /> | %d | %d | %s | %s | %s |\n' %(
                     i, 
                     v.get('name', '-'), k, users.get(k, "").replace('./data/', './'),
                     k, v.get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
-                    self.users.get(k, {}).get('time', 0),
-                    self.users.get(k, {}).get('count', 0),
                     v.get('followers', {}).get("totalCount", '0'),
                     v.get('following', {}).get("totalCount", '0'),
                     # use next curor check finish
-                    not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False),
+                    fin,
+                    self.users.get(k, {}).get('time', 0),
+                    self.users.get(k, {}).get('count', 0),
                 ))
                 i+=1
                 
