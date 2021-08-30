@@ -122,6 +122,12 @@ running=RunningInfo()
 #    ]
 # }
 
+# 403
+# {
+#     "documentation_url":"https://docs.github.com/en/free-pro-team@latest/rest/overview/resources-in-the-rest-api#secondary-rate-limits",
+#     "message":"You have exceeded a secondary rate limit. Please wait a few minutes before you try again."
+# }
+
 def make_query():
     snode='''
     nodes {
@@ -179,6 +185,14 @@ def make_query():
 def make_user_query_wo_cursor():
     query="""
     query($login: String! $n_of_followers:Int!) {
+    rateLimit {
+        cost
+        limit
+        nodeCount
+        remaining
+        resetAt
+        used
+    }
     user(login: $login) {
         id
         databaseId
@@ -251,6 +265,14 @@ def make_user_query_wo_cursor():
 def make_user_query_w_cursor():
     query="""
     query($login: String! $n_of_followers:Int! $after: String!) {
+    rateLimit {
+        cost
+        limit
+        nodeCount
+        remaining
+        resetAt
+        used
+    }
     user(login: $login) {
         id
         databaseId
@@ -392,6 +414,8 @@ def proc_response(res, **kwargs):
             reqs.append(X)
             return
         t=json.loads(res.text)
+        r=t.get('data', {}).get('rateLimit', {})
+        print("⚠️rate", r)
         u=t.get('data', {}).get('user', {})
         if not u:
             print(t)
@@ -546,7 +570,9 @@ def load_users():
             
 
 def main_grequests():
-    headers = {}
+    headers = {
+        "User-Agent": "Awesome-Octocat-App"
+    }
     if token:
         headers['Authorization'] = 'token ' + token
         
@@ -590,13 +616,13 @@ def main_grequests():
                     json=make_user(k, v['followers']['pageInfo']['endCursor']),
                     hooks={"response":proc_response})
 
-                time.sleep(2)
+                time.sleep(1)
                 processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", k, v['followers']['pageInfo']['endCursor'])
                 top_user_map[k]['ready_fetch']=False
 
                 if time.time() - start_time > timeout * 60:
-                    print("make users timeout")
+                    print("⛔⛔make users timeout")
                     timeout_flag = True
                     break
 
