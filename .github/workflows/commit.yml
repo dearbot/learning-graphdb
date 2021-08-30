@@ -42,6 +42,12 @@ jobs:
       run: |
         cd data
         XX=`curl -I -k "https://api.github.com/repos/dearbot/max-number-of-commits/commits?per_page=1" | sed -n '/^[Ll]ink:/ s/.*"next".*page=\([0-9]*\).*"last".*/\1/p'`
+        if [ $XX == 100000000 ]; then
+          echo "100000000"
+          exit 0
+        else
+          echo "go on"
+        fi
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         for (( x=0; x<10; x++))
