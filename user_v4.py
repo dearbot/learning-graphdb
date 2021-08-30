@@ -415,7 +415,7 @@ def proc_response(res, **kwargs):
             return
         t=json.loads(res.text)
         r=t.get('data', {}).get('rateLimit', {})
-        print("⚠️rate", r)
+        print("⚠️ rate", r)
         u=t.get('data', {}).get('user', {})
         if not u:
             print(t)
@@ -622,7 +622,7 @@ def main_grequests():
                 top_user_map[k]['ready_fetch']=False
 
                 if time.time() - start_time > timeout * 60:
-                    print("⛔⛔make users timeout")
+                    print("⛔⛔ make users timeout")
                     timeout_flag = True
                     break
 
