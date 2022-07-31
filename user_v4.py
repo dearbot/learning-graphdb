@@ -93,9 +93,9 @@ class RunningInfo:
                     if os.path.isdir("./data/jobs/"+i):
                         f.write("| %s | %d |\n" % (i, len(os.listdir('./data/jobs/'+i))))
                         total += len(os.listdir('./data/jobs/'+i))
-            # save users folder and total
-            f.write("| users | %d |\n" % (len(os.listdir('./data/users'))))
-            total += len(os.listdir('./data/users'))
+#             # save users folder and total
+#             f.write("| users | %d |\n" % (len(os.listdir('./data/users'))))
+#             total += len(os.listdir('./data/users'))
             f.write('| **total** | %d |\n' % (total))
             
 
@@ -558,17 +558,17 @@ def load_users():
     global users
     js = []
     if os.path.exists("./data/jobs"):
-        js=["./data/jobs/"+i for i in os.listdir('./data/jobs')]
-    for i in ['./data/users']+js:
-        if os.path.isdir(i):
-            us=os.listdir(i)
-            for u in us:
-                uu=u.split(".json")[0]
-                if uu in users:
-                    print("remove dup %s %s" % (i+"/"+u, users[uu]))
-                    os.remove(i+"/"+u)
-                    continue
-                users[uu]=i+"/"+u
+#         js=["./data/jobs/"+i for i in os.listdir('./data/jobs')]
+#     for i in ['./data/users']+js:
+#         if os.path.isdir(i):
+#             us=os.listdir(i)
+#             for u in us:
+#                 uu=u.split(".json")[0]
+#                 if uu in users:
+#                     print("remove dup %s %s" % (i+"/"+u, users[uu]))
+#                     os.remove(i+"/"+u)
+#                     continue
+#                 users[uu]=i+"/"+u
     print("user history count", len(users))
             
 
