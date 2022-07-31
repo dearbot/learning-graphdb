@@ -381,6 +381,9 @@ def get_top(query):
     try:
         res=requests.post('https://api.github.com/graphql', headers=headers, json={'query': query})
         t=json.loads(res.text)
+        
+        if "errors" in t:
+            print("get top", t)
         return t['data']['search']['nodes']
     except Exception as e:
         print(e)
@@ -394,6 +397,8 @@ def get_user(gql):
     try:
         res=requests.post('https://api.github.com/graphql', headers=headers, json=gql)
         t=json.loads(res.text)
+        if "errors" in t:
+            print("get user", t)
         return [t['data']['user']]
     except Exception as e:
         print("get_user", e)
