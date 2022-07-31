@@ -141,6 +141,7 @@ def make_query():
         company
         location
         url
+        email
         twitterUsername
         createdAt
         updatedAt
@@ -237,6 +238,7 @@ def make_user_query_wo_cursor():
                         company
                         location
                         url
+                        email
                         twitterUsername
                         createdAt
                         updatedAt
@@ -317,6 +319,7 @@ def make_user_query_w_cursor():
                         company
                         location
                         url
+                        email
                         twitterUsername
                         createdAt
                         updatedAt
