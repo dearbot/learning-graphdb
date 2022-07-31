@@ -558,7 +558,7 @@ def load_users():
     global users
     js = []
     if os.path.exists("./data/jobs"):
-#         js=["./data/jobs/"+i for i in os.listdir('./data/jobs')]
+         js=["./data/jobs/"+i for i in os.listdir('./data/jobs')]
 #     for i in ['./data/users']+js:
 #         if os.path.isdir(i):
 #             us=os.listdir(i)
