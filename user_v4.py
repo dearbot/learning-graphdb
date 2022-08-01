@@ -12,17 +12,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # https://gql.readthedocs.io/en/v3.0.0a6/
 
-
 token = ''
 level = 0
 timeout = 300  # minutes
 
 ###
-top_user_map={}
-relations=''
+TopUser_MAP={}
+relations='' # relation records
 users={} # user + json path
-reqs=[]
-current_dir="./data/jobs/"+os.getenv("GITHUB_RUN_NUMBER", "0")+"/"
+reqs=[] # reqs in grequest main
+CURRENT_DIR="./data/jobs/"+os.getenv("GITHUB_RUN_NUMBER", "0")+"/"
 
 class RunningInfo:
     status={}
@@ -59,7 +58,7 @@ class RunningInfo:
             f.write('| No | User | Avatar | Follower | Following | Finished | Times | Count(L2) |\n')
             f.write('| -----: | :----- | ----: | ----: | ----: | :---- | ----: | :---- |\n')
             i = 1
-            for k, v in top_user_map.items():
+            for k, v in TopUser_MAP.items():
                 fin="False"
                 if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
                     fin="<font color=yellow>True</font>"
@@ -100,7 +99,7 @@ class RunningInfo:
             
 
 # running
-running=RunningInfo()
+RI=RunningInfo()
 
 ###
 # {
@@ -128,7 +127,7 @@ running=RunningInfo()
 #     "message":"You have exceeded a secondary rate limit. Please wait a few minutes before you try again."
 # }
 
-def make_query():
+def make_search_query():
     snode='''
     nodes {
         ... on User {
@@ -386,22 +385,7 @@ def get_top(query):
             print("get top", t)
         return t['data']['search']['nodes']
     except Exception as e:
-        print(e)
-        # {'data': None, 'errors': [{'message': 'Something went wrong while executing your query. This may be the result of a timeout, or it could be a GitHub bug. Please include `A192:7CFA:EB2D34:1B4927F:611B5598` when reporting this issue.'}]}
-        return None
-
-def get_user(gql):
-    headers = {}
-    if token:
-        headers['Authorization'] = 'token ' + token
-    try:
-        res=requests.post('https://api.github.com/graphql', headers=headers, json=gql)
-        t=json.loads(res.text)
-        if "errors" in t:
-            print("get user", t)
-        return [t['data']['user']]
-    except Exception as e:
-        print("get_user", e)
+        print("get search", e)
         # {'data': None, 'errors': [{'message': 'Something went wrong while executing your query. This may be the result of a timeout, or it could be a GitHub bug. Please include `A192:7CFA:EB2D34:1B4927F:611B5598` when reporting this issue.'}]}
         return None
 
@@ -409,12 +393,12 @@ def proc_response(res, **kwargs):
     # do something ..
     X=json.loads(res.request.body).get('variables', {})
     print("🎵🎵 Response:", res.status_code, X, res.elapsed.total_seconds())
-    running.save_s(status_code=res.status_code)
+    RI.save_s(status_code=res.status_code)
     # rework...
-    global top_user_map
+    global TopUser_MAP
     n=X.get('login', '')
-    if n in top_user_map:
-        top_user_map[n]['ready_fetch']=True
+    if n in TopUser_MAP:
+        TopUser_MAP[n]['ready_fetch']=True
         print(n, "reworker in response.")
     try:
         if res.status_code != 200:
@@ -428,7 +412,7 @@ def proc_response(res, **kwargs):
         if not u:
             print(t)
         save_data([u])
-        running.save_u(u)
+        RI.save_u(u)
     except Exception as e:
         print("proc_response", e)
 
@@ -440,8 +424,8 @@ def err_handler(request, exception):
 def save_data(dat, root=True):
     if not dat:
         return
-    if not os.path.exists(current_dir):
-        os.makedirs(current_dir)
+    if not os.path.exists(CURRENT_DIR):
+        os.makedirs(CURRENT_DIR)
     for d in dat:
         if not d:
             continue
@@ -455,12 +439,12 @@ def save_data(dat, root=True):
             save_data(d['following']['nodes'], False)
         
         global users
-        path=current_dir + user+'.json'
+        path=CURRENT_DIR + user+'.json'
         if user not in users:
             with open('/tmp/users.txt', 'a') as f:
                 f.write('{}\n'.format(user))
         else:
-            # update history data
+            # update history jobs data
             path=users[user]
 
         with open(path, 'w') as f:
@@ -471,16 +455,16 @@ def save_data(dat, root=True):
             f.write(json.dumps(dd, indent=2, ensure_ascii=False))
             users[user]=path
             if root:
-                global top_user_map
+                global TopUser_MAP
                 d['ready_fetch']=True
-                top_user_map[user]=d
+                TopUser_MAP[user]=d
                 print(user, 'ready true')
         
 
 def load_relation_data():
-    if not os.path.exists("./data/relations/relations.txt"):
+    if not os.path.exists("./relations/relations.txt"):
         return
-    with open('./data/relations/relations.txt', 'r') as f:
+    with open('./relations/relations.txt', 'r') as f:
         global relations
         relations = f.read()
 
@@ -499,9 +483,9 @@ def save_relation_data(user, relation, objects):
 
 
 def output_relation():
-    if not os.path.exists("./data/relations/"):
-        os.makedirs("./data/relations/")
-    with open('./data/relations/relations.txt', 'w') as f:
+    if not os.path.exists("./relations/"):
+        os.makedirs("./relations/")
+    with open('./relations/relations.txt', 'w') as f:
         global relations
         f.write(relations)
 
@@ -529,35 +513,10 @@ def load_top(top):
             t.append(d)
     # update user
     for i in t:
-        global top_user_map
+        global TopUser_MAP
         i['ready_fetch']=True
-        top_user_map[i['login']]=i
+        TopUser_MAP[i['login']]=i
     return t
-
-def main():
-    while True:
-        global top_user_map
-        u=copy.deepcopy(top_user_map)
-        print("top user count:", len(top_user_map))
-        if time.time() - start_time > timeout * 60:
-            print("timeout")
-            break
-        for k, v in u.items():
-            if not v['followers']['pageInfo']['hasNextPage']:
-                # del top_user_map[k]
-                print("finish for followers: ", k)
-                continue
-            d=get_user(make_user(k, v['followers']['pageInfo']['endCursor']))
-            save_data(d)
-
-            with open('./data/README.md', 'w') as f:
-                f.write('## Github User Summary\n\n')
-                f.write("- Top User Count: %d\n" % len(top_user_map))
-                f.write("- Relations: %d\n" % len(relations.split('\n')))
-                f.write("- Real User Updated: %d\n" % len(users))
-            output_relation()
-        if len(top_user_map) == 0:
-            break
 
 def load_users():
     global users
@@ -587,18 +546,18 @@ def main_grequests():
     processes = []
     with ThreadPoolExecutor(max_workers=100) as executor:
         while True:
-            global top_user_map
-            if len(top_user_map) == 0:
+            global TopUser_MAP
+            if len(TopUser_MAP) == 0:
                 break
 
-            if not any([v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False) for v in top_user_map.values()]):
+            if not any([v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False) for v in TopUser_MAP.values()]):
                 break
 
             global start_time
             if time.time() - start_time > timeout * 60:
                 print("main_grequests timeout")
                 break
-            x={k:v for k, v in top_user_map.items() if v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)}
+            x={k:v for k, v in TopUser_MAP.items() if v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)}
             if not any([v.get('ready_fetch', False) for k, v in x.items()]):
                 print("💤💤 waiting...")
                 time.sleep(2)
@@ -606,13 +565,13 @@ def main_grequests():
 
             x={k:v for k, v in x.items() if v.get('ready_fetch', False)}
             u=copy.deepcopy(x)
-            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), len(top_user_map), len(u))
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), len(TopUser_MAP), len(u))
 
             # request
             timeout_flag=False
             for k, v in u.items():
                 if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
-                    # del top_user_map[k]
+                    # del TopUser_MAP[k]
                     # print(k, "finish")
                     continue
                 if not v.get('ready_fetch', False):
@@ -627,7 +586,7 @@ def main_grequests():
                 time.sleep(1)
                 processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", k, v['followers']['pageInfo']['endCursor'])
-                top_user_map[k]['ready_fetch']=False
+                TopUser_MAP[k]['ready_fetch']=False
 
                 if time.time() - start_time > timeout * 60:
                     print("⛔⛔ make users timeout")
@@ -641,16 +600,15 @@ def main_grequests():
         
     with open('./data/README.md', 'w') as f:
         f.write('## Github User Summary\n\n')
-        f.write("- Top User Count: %d\n" % len(top_user_map))
+        f.write("- Top User Count: %d\n" % len(TopUser_MAP))
         f.write("- Relations: %d\n" % len(relations.split('\n')))
         f.write("- Real User Updated: %d\n" % len(users))
-    output_relation()
 
 
 if __name__ == "__main__":
     # call output without args.
     if len(sys.argv) == 1:
-        running.output_jobs()
+        RI.output_jobs()
         exit(0)
 
     # args > 1 for processing
@@ -660,9 +618,11 @@ if __name__ == "__main__":
         timeout = int(sys.argv[2])
     start_time = time.time()
 
+    # load users from jobs folders
     load_users()
 
-    query = make_query()
+    # top user from search query
+    query = make_search_query()
     top=get_top(query)
     # python user.py token timeout replace
     if len(sys.argv) > 3:
@@ -678,4 +638,4 @@ if __name__ == "__main__":
     load_relation_data()
     main_grequests()
     output_relation()
-    running.output()
+    RI.output()
