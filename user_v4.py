@@ -484,6 +484,8 @@ def save_relation_data(user, relation, objects):
     # 〈userset〉::=〈object〉‘#’〈relation〉
     # https://research.google/pubs/pub48190/
     for i in objects:
+        if not i:
+            continue
         dd = "{}#{}@{}\n".format(i['login'], relation, user)
         global relations
         if dd not in relations:
