@@ -243,6 +243,10 @@ def make_user_query_wo_cursor():
                         updatedAt
                         followers {
                             totalCount
+                             pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
                         }
                         following {
                             totalCount
@@ -324,6 +328,10 @@ def make_user_query_w_cursor():
                         updatedAt
                         followers {
                             totalCount
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
                         }
                         following {
                             totalCount
