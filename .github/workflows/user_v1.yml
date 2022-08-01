@@ -53,6 +53,7 @@ jobs:
     - run: |
         python user_v4.py
         cat data/README.md
+        tar zcvf users.tgz ./data/jobs/*
       name: output
     - name: check for changes and git push
       continue-on-error: true
@@ -74,3 +75,21 @@ jobs:
       with:
         name: relations
         path: ./relations
+    - name: B2 Upload
+      uses: wilsonzlin/b2-upload-action@v1.0.1
+      with:
+        bucket: github-user
+        uploadKey: users.tgz
+        keyId: ${{ sercets.B2ID }}
+        applicationKey: ${{ sercets.B2KEY }}
+        file: ./users.tgz
+        contentType: b2/x-auto
+    - name: B2 Upload
+      uses: wilsonzlin/b2-upload-action@v1.0.1
+      with:
+        bucket: github-user
+        uploadKey: ${{ github.run_number }}_README.md
+        keyId: ${{ sercets.B2ID }}
+        applicationKey: ${{ sercets.B2KEY }}
+        file: ./data/README.md
+        contentType: b2/x-auto
