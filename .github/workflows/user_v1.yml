@@ -55,22 +55,22 @@ jobs:
         cat data/README.md
         tar zcvf users.tgz ./data/jobs/*
       name: output
-    - name: check for changes and git push
-      continue-on-error: true
-      run: |
-        cd data
-        git branch --show-current
-        if [[ `git status -s` ]]; then
-          echo "CHANGED"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add jobs/$GITHUB_RUN_NUMBER
-          git add README.md
-          git commit -m "Add changes" -a
-          git push
-        else
-          echo "NO CHANGED"
-        fi
+#     - name: check for changes and git push
+#       continue-on-error: true
+#       run: |
+#         cd data
+#         git branch --show-current
+#         if [[ `git status -s` ]]; then
+#           echo "CHANGED"
+#           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+#           git config --local user.name "github-actions[bot]"
+#           git add jobs/$GITHUB_RUN_NUMBER
+#           git add README.md
+#           git commit -m "Add changes" -a
+#           git push
+#         else
+#           echo "NO CHANGED"
+#         fi
     - uses: actions/upload-artifact@v2
       with:
         name: relations
