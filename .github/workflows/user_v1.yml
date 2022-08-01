@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '0 */3 * * *'
+    - cron: '0 */1 * * *'
   workflow_dispatch:
     inputs:
       timeout:
@@ -22,14 +22,13 @@ jobs:
     #timeout-minutes: 360
     steps:
     - uses: actions/checkout@v2
-#     - name: Checkout tools repo
-#       uses: actions/checkout@v2
-#       with:
-#         repository: dearbot/github-user
-#         token: ${{ secrets.PAT }}
-#         ref: main
-#         path: data
-#         lfs: true
+    - name: Checkout tools repo
+      uses: actions/checkout@v2
+      with:
+        repository: dearbot/github-user
+        token: ${{ secrets.PAT }}
+        ref: main
+        path: git
     - name: Download file from Backblaze B2
       # You may pin to the exact commit or the version.
       # uses: sksat/b2-download-action@34b675c16a70d8f08d92241d4e459e687a35c594
@@ -40,13 +39,6 @@ jobs:
         bucket: github-user
         file_name: users.tgz
         local_name: users.tgz
-#     - uses: actions/cache@v2
-#       with:
-#         path: |
-#           ./relations
-#         key: cache-relations-${{ github.run_number }} 
-#         restore-keys: |
-#             cache-relations-
     - run: tar zxvf users.tgz -C .
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
@@ -59,28 +51,36 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - run: python user_v4.py ${{ secrets.PAT }} ${{ github.event.inputs.timeout }}
       if: github.event_name == 'workflow_dispatch'
-    - run: python user_v4.py ${{ secrets.PAT }} 120
+    - run: python user_v4.py ${{ secrets.PAT }} 45
       if: github.event_name == 'schedule'
     - run: |
+        # make output
         python user_v4.py
         cat data/README.md
-    - run: tar zcvf users.tgz ./data/jobs/* ./relations/*
-#     - name: check for changes and git push
-#       continue-on-error: true
-#       run: |
-#         cd data
-#         git branch --show-current
-#         if [[ `git status -s` ]]; then
-#           echo "CHANGED"
-#           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-#           git config --local user.name "github-actions[bot]"
-#           git add jobs/$GITHUB_RUN_NUMBER
-#           git add README.md
-#           git commit -m "Add changes" -a
-#           git push
-#         else
-#           echo "NO CHANGED"
-#         fi
+        
+        # make b2 backup
+        tar zcvf users.tgz ./data/jobs/* ./relations/*
+        
+        # make git backup
+        cp ./data/README.md ./git/README.md
+        cp ./data/README.md ./git/${GITHUB_RUN_NUMBER}_README.md
+    
+    - name: check for changes and git push
+      continue-on-error: true
+      run: |
+        cd git
+        git branch --show-current
+        if [[ `git status -s` ]]; then
+          echo "CHANGED"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add ${GITHUB_RUN_NUMBER}_README.md
+          git add README.md
+          git commit -m "Add changes" -a
+          git push
+        else
+          echo "NO CHANGED"
+        fi
     - uses: actions/upload-artifact@v2
       with:
         name: relations
