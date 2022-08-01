@@ -564,16 +564,16 @@ def load_users():
     js = []
     if os.path.exists("./data/jobs"):
          js=["./data/jobs/"+i for i in os.listdir('./data/jobs')]
-#     for i in ['./data/users']+js:
-#         if os.path.isdir(i):
-#             us=os.listdir(i)
-#             for u in us:
-#                 uu=u.split(".json")[0]
-#                 if uu in users:
-#                     print("remove dup %s %s" % (i+"/"+u, users[uu]))
-#                     os.remove(i+"/"+u)
-#                     continue
-#                 users[uu]=i+"/"+u
+    for i in js:
+        if os.path.isdir(i):
+            us=os.listdir(i)
+            for u in us:
+                uu=u.split(".json")[0]
+                if uu in users:
+                    print("remove dup %s %s" % (i+"/"+u, users[uu]))
+                    os.remove(i+"/"+u)
+                    continue
+                users[uu]=i+"/"+u
     print("user history count", len(users))
             
 
