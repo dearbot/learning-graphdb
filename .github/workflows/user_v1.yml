@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '0 */1 * * *'
+    - cron: '0 */2 * * *'
   workflow_dispatch:
     inputs:
       timeout:
@@ -51,7 +51,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - run: python user_v4.py ${{ secrets.PAT }} ${{ github.event.inputs.timeout }}
       if: github.event_name == 'workflow_dispatch'
-    - run: python user_v4.py ${{ secrets.PAT }} 45
+    - run: python user_v4.py ${{ secrets.PAT }} 90
       if: github.event_name == 'schedule'
     - run: |
         # make output
