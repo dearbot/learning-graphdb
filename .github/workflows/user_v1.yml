@@ -59,6 +59,7 @@ jobs:
         cat data/README.md
         
         # make b2 backup
+        mv users.tgz users_backup.tgz
         tar zcvf users.tgz ./data/jobs/* ./relations/*
         
         # make git backup
