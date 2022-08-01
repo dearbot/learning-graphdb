@@ -80,8 +80,8 @@ jobs:
       with:
         bucket: github-user
         uploadKey: users.tgz
-        keyId: ${{ sercets.B2ID }}
-        applicationKey: ${{ sercets.B2KEY }}
+        keyId: ${{ secrets.B2ID }}
+        applicationKey: ${{ secrets.B2KEY }}
         file: ./users.tgz
         contentType: b2/x-auto
     - name: B2 Upload
@@ -89,7 +89,7 @@ jobs:
       with:
         bucket: github-user
         uploadKey: ${{ github.run_number }}_README.md
-        keyId: ${{ sercets.B2ID }}
-        applicationKey: ${{ sercets.B2KEY }}
+        keyId: ${{ secrets.B2ID }}
+        applicationKey: ${{ secrets.B2KEY }}
         file: ./data/README.md
         contentType: b2/x-auto
