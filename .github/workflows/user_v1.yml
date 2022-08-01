@@ -30,6 +30,13 @@ jobs:
         ref: main
         path: data
         lfs: true
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ./relations
+        key: cache-relations-${{ github.run_number }} 
+        restore-keys: |
+            cache-relations-
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
@@ -57,7 +64,6 @@ jobs:
           echo "CHANGED"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add relations/relations.txt
           git add jobs/$GITHUB_RUN_NUMBER
           git add README.md
           git commit -m "Add changes" -a
@@ -65,3 +71,7 @@ jobs:
         else
           echo "NO CHANGED"
         fi
+    - uses: actions/upload-artifact@v2
+      with:
+        name: relations
+        path: ./relations
