@@ -82,10 +82,6 @@ jobs:
         else
           echo "NO CHANGED"
         fi
-    - uses: actions/upload-artifact@v2
-      with:
-        name: relations
-        path: ./relations
     - name: B2 Upload
       uses: wilsonzlin/b2-upload-action@v1.0.1
       with:
