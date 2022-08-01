@@ -83,20 +83,20 @@ jobs:
           echo "NO CHANGED"
         fi
     - name: B2 Upload
-      uses: wilsonzlin/b2-upload-action@v1.0.1
+      uses: yamatt/backblaze-b2-upload-action@v6
       with:
-        bucket: github-user
-        uploadKey: users.tgz
-        keyId: ${{ secrets.B2ID }}
-        applicationKey: ${{ secrets.B2KEY }}
-        file: ./users.tgz
+        bucket_name: github-user
+        remote_path: users.tgz
+        key_id: ${{ secrets.B2ID }}
+        application_key: ${{ secrets.B2KEY }}
+        file_path: ./users.tgz
         contentType: b2/x-auto
     - name: B2 Upload
-      uses: wilsonzlin/b2-upload-action@v1.0.1
+      uses: yamatt/backblaze-b2-upload-action@v6
       with:
-        bucket: github-user
-        uploadKey: ${{ github.run_number }}_README.md
-        keyId: ${{ secrets.B2ID }}
-        applicationKey: ${{ secrets.B2KEY }}
-        file: ./data/README.md
+        bucket_name: github-user
+        remote_path: ${{ github.run_number }}_README.md
+        key_id: ${{ secrets.B2ID }}
+        application_key: ${{ secrets.B2KEY }}
+        file_path: ./data/README.md
         contentType: b2/x-auto
