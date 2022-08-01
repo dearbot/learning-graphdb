@@ -30,6 +30,16 @@ jobs:
         ref: main
         path: data
         lfs: true
+    - name: Download file from Backblaze B2
+      # You may pin to the exact commit or the version.
+      # uses: sksat/b2-download-action@34b675c16a70d8f08d92241d4e459e687a35c594
+      uses: sksat/b2-download-action@v0.1.0
+      with:
+        key_id: ${{ secrets.B2ID }}
+        key: ${{ secrets.B2KEY }}
+        bucket: github-user
+        file_name: users.tgz
+        local_name: users.tgz
     - uses: actions/cache@v2
       with:
         path: |
