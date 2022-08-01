@@ -50,11 +50,10 @@ jobs:
       if: github.event_name == 'workflow_dispatch'
     - run: python user_v4.py ${{ secrets.PAT }} 120
       if: github.event_name == 'schedule'
-    - name: move new files to job folder
-      run: |
-        for i in $(cat /tmp/users.txt); do if [ -f data/users/${i}.json ]; then mv data/users/${i}.json data/jobs/$GITHUB_RUN_NUMBER/${i}.json; fi; done
-    - run: python user_v4.py
-    - run: cat data/README.md
+    - run: |
+        python user_v4.py
+        cat data/README.md
+      name: output
     - name: check for changes and git push
       continue-on-error: true
       run: |
