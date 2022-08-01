@@ -22,14 +22,14 @@ jobs:
     #timeout-minutes: 360
     steps:
     - uses: actions/checkout@v2
-    - name: Checkout tools repo
-      uses: actions/checkout@v2
-      with:
-        repository: dearbot/github-user
-        token: ${{ secrets.PAT }}
-        ref: main
-        path: data
-        lfs: true
+#     - name: Checkout tools repo
+#       uses: actions/checkout@v2
+#       with:
+#         repository: dearbot/github-user
+#         token: ${{ secrets.PAT }}
+#         ref: main
+#         path: data
+#         lfs: true
     - name: Download file from Backblaze B2
       # You may pin to the exact commit or the version.
       # uses: sksat/b2-download-action@34b675c16a70d8f08d92241d4e459e687a35c594
@@ -40,13 +40,14 @@ jobs:
         bucket: github-user
         file_name: users.tgz
         local_name: users.tgz
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ./relations
-        key: cache-relations-${{ github.run_number }} 
-        restore-keys: |
-            cache-relations-
+#     - uses: actions/cache@v2
+#       with:
+#         path: |
+#           ./relations
+#         key: cache-relations-${{ github.run_number }} 
+#         restore-keys: |
+#             cache-relations-
+    - run: tar zxvf users.tgz -C .
     - name: Set up Python 3.9
       uses: actions/setup-python@v2
       with:
@@ -63,8 +64,7 @@ jobs:
     - run: |
         python user_v4.py
         cat data/README.md
-        tar zcvf users.tgz ./data/jobs/*
-      name: output
+    - run: tar zcvf users.tgz ./data/jobs/* ./relations/*
 #     - name: check for changes and git push
 #       continue-on-error: true
 #       run: |
