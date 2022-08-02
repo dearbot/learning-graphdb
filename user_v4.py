@@ -443,7 +443,7 @@ def save_data(dat, root=True):
             save_data(d['followers']['nodes'], False)
 
         if d.get('following', {}).get('nodes', False):
-            save_relation_data(user, 'followling', d['followling']['nodes'])
+            save_relation_data(user, 'following', d['following']['nodes'])
             save_data(d['following']['nodes'], False)
         
         global users
