@@ -29,9 +29,14 @@ jobs:
         token: ${{ secrets.PAT }}
         ref: main
         path: git
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ./relations
+        key: cache-relations-${{ github.run_number }} 
+        restore-keys: |
+          cache-relations-
     - name: Download file from Backblaze B2
-      # You may pin to the exact commit or the version.
-      # uses: sksat/b2-download-action@34b675c16a70d8f08d92241d4e459e687a35c594
       uses: sksat/b2-download-action@v0.1.0
       with:
         key_id: ${{ secrets.B2ID }}
@@ -82,7 +87,7 @@ jobs:
         else
           echo "NO CHANGED"
         fi
-    - name: B2 Upload
+    - name: B2 Upload users.tgz
       uses: yamatt/backblaze-b2-upload-action@v6
       with:
         bucket_name: github-user
@@ -90,7 +95,7 @@ jobs:
         key_id: ${{ secrets.B2ID }}
         application_key: ${{ secrets.B2KEY }}
         file_path: ./users.tgz
-    - name: B2 Upload
+    - name: B2 Upload readme
       uses: yamatt/backblaze-b2-upload-action@v6
       with:
         bucket_name: github-user
@@ -98,3 +103,7 @@ jobs:
         key_id: ${{ secrets.B2ID }}
         application_key: ${{ secrets.B2KEY }}
         file_path: ./data/README.md
+    - uses: actions/upload-artifact@v2
+      with:
+        name: relations
+        path: ./relations
