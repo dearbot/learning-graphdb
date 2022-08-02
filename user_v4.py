@@ -62,9 +62,9 @@ class RunningInfo:
                 fin="False"
                 if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
                     fin="<font color=yellow>True</font>"
-                f.write('| %d | [%s<br>(%s)](%s) | <img alt=\'%s\' src="%s" width="40px" /> | %s | %s | %s | %d | %d |\n' %(
+                f.write('| %d | [%s<br>(%s)](https://github.com/%s) | <img alt=\'%s\' src="%s" width="40px" /> | %s | %s | %s | %d | %d |\n' %(
                     i, 
-                    v.get('name', '-'), k, users.get(k, "").replace('./data/', './'),
+                    v.get('name', '-'), k, k,
                     k, v.get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
                     v.get('followers', {}).get("totalCount", '0'),
                     v.get('following', {}).get("totalCount", '0'),
