@@ -65,7 +65,7 @@ jobs:
         
         # make b2 backup
         mv users.tgz users_backup.tgz
-        tar zcf users.tgz ./data/jobs/* ./relations/*
+        tar zcf users.tgz ./data/jobs/*
         
         # make git backup
         cp ./data/README.md ./git/README.md
