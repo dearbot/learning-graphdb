@@ -62,10 +62,10 @@ class RunningInfo:
                 fin="False"
                 if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
                     fin="<font color=yellow>True</font>"
-                f.write('| %d | [%s<br>(%s)](https://github.com/%s) | <img alt=\'%s\' src="%s" width="40px" /> | %s | %s | %s | %d | %d |\n' %(
+                f.write('| %d | [%s<br>(%s)](https://github.com/%s) | <img alt=\'%s\' src="https://avatars.githubusercontent.com/in/%s?s=128&v=4" width="40px" /> | %s | %s | %s | %d | %d |\n' %(
                     i, 
                     v.get('name', '-'), k, k,
-                    k, v.get('avatarUrl', 'https://avatars.githubusercontent.com/in/15368?s=64&v=4'),
+                    k, v.get('databaseId', '15368'),
                     v.get('followers', {}).get("totalCount", '0'),
                     v.get('following', {}).get("totalCount", '0'),
                     # use next curor check finish
@@ -174,12 +174,13 @@ def make_search_query():
         resetAt
         used
     }
-    search(query: "", type: USER, first: 100, after: "Y3Vyc29yOjEwMA==") {
+    search(query: "", type: USER, first: 100) {
         userCount
         %s
     }
     }
     """
+    # Y3Vyc29yOjEwMA==
     return query % (snode)
 
 def make_user_query_wo_cursor():
@@ -199,10 +200,8 @@ def make_user_query_wo_cursor():
         login
         name
         bio
-        avatarUrl(size: 128)
         company
         location
-        url
         email
         twitterUsername
         createdAt
@@ -235,10 +234,8 @@ def make_user_query_wo_cursor():
                         login
                         name
                         bio
-                        avatarUrl(size: 128)
                         company
                         location
-                        url
                         email
                         twitterUsername
                         createdAt
@@ -250,7 +247,7 @@ def make_user_query_wo_cursor():
                                 endCursor
                             }
                         }
-                        following(first: 1) {
+                        following {
                             totalCount
                         }
                     }
@@ -259,7 +256,7 @@ def make_user_query_wo_cursor():
                         endCursor
                     }
                 }
-                following(first: 1) {
+                following {
                     totalCount
                 }
             }
@@ -286,10 +283,8 @@ def make_user_query_w_cursor():
         login
         name
         bio
-        avatarUrl(size: 128)
         company
         location
-        url
         email
         twitterUsername
         createdAt
@@ -306,15 +301,13 @@ def make_user_query_w_cursor():
                 login
                 name
                 bio
-                avatarUrl(size: 128)
                 company
                 location
-                url
                 email
                 twitterUsername
                 createdAt
                 updatedAt
-                followers(first: 20) {
+                followers(first: 10) {
                     totalCount
                     nodes {
                         id
@@ -322,10 +315,8 @@ def make_user_query_w_cursor():
                         login
                         name
                         bio
-                        avatarUrl(size: 128)
                         company
                         location
-                        url
                         email
                         twitterUsername
                         createdAt
@@ -337,7 +328,7 @@ def make_user_query_w_cursor():
                                 endCursor
                             }
                         }
-                        following(first: 1) {
+                        following {
                             totalCount
                         }
                     }
@@ -346,7 +337,7 @@ def make_user_query_w_cursor():
                         endCursor
                     }
                 }
-                following(first: 1) {
+                following {
                     totalCount
                 }
             }
