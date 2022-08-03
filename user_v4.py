@@ -136,10 +136,8 @@ def make_search_query():
         login
         name
         bio
-        avatarUrl(size: 128)
         company
         location
-        url
         email
         twitterUsername
         createdAt
@@ -218,7 +216,6 @@ def make_user_query_wo_cursor():
                 login
                 name
                 bio
-                avatarUrl(size: 128)
                 company
                 location
                 url
@@ -226,7 +223,7 @@ def make_user_query_wo_cursor():
                 twitterUsername
                 createdAt
                 updatedAt
-                followers(first: 20) {
+                followers(first: 10) {
                     totalCount
                     nodes {
                         id
