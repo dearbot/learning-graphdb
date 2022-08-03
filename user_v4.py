@@ -307,6 +307,7 @@ def make_user_query_w_cursor():
                 company
                 location
                 url
+                email
                 twitterUsername
                 createdAt
                 updatedAt
