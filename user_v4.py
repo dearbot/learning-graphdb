@@ -585,7 +585,7 @@ def main_grequests():
                     json=make_user(k, v['followers']['pageInfo']['endCursor']),
                     hooks={"response":proc_response})
 
-                time.sleep(1)
+                time.sleep(2)
                 processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", k, v['followers']['pageInfo']['endCursor'])
                 TopUser_MAP[k]['ready_fetch']=False
