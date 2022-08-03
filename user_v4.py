@@ -203,6 +203,7 @@ def make_user_query_wo_cursor():
         company
         location
         url
+        email
         twitterUsername
         createdAt
         updatedAt
@@ -222,6 +223,7 @@ def make_user_query_wo_cursor():
                 company
                 location
                 url
+                email
                 twitterUsername
                 createdAt
                 updatedAt
@@ -241,14 +243,14 @@ def make_user_query_wo_cursor():
                         twitterUsername
                         createdAt
                         updatedAt
-                        followers {
+                        followers(first: 1) {
                             totalCount
                              pageInfo {
                                 hasNextPage
                                 endCursor
                             }
                         }
-                        following {
+                        following(first: 1) {
                             totalCount
                         }
                     }
@@ -257,7 +259,7 @@ def make_user_query_wo_cursor():
                         endCursor
                     }
                 }
-                following {
+                following(first: 1) {
                     totalCount
                 }
             }
@@ -288,6 +290,7 @@ def make_user_query_w_cursor():
         company
         location
         url
+        email
         twitterUsername
         createdAt
         updatedAt
@@ -327,14 +330,14 @@ def make_user_query_w_cursor():
                         twitterUsername
                         createdAt
                         updatedAt
-                        followers {
+                        followers(first: 1) {
                             totalCount
                             pageInfo {
                                 hasNextPage
                                 endCursor
                             }
                         }
-                        following {
+                        following(first: 1) {
                             totalCount
                         }
                     }
@@ -343,7 +346,7 @@ def make_user_query_w_cursor():
                         endCursor
                     }
                 }
-                following {
+                following(first: 1) {
                     totalCount
                 }
             }
