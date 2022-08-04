@@ -602,7 +602,7 @@ def main_grequests():
                     timeout_flag = True
                     break
                 
-                time.sleep(1)
+               # time.sleep(1)
 
             # timeout in request for loop
             if timeout_flag:
