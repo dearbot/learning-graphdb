@@ -61,7 +61,7 @@ class RunningInfo:
                 fin="False"
                 if not v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False):
                     fin="<font color=yellow>True</font>"
-                f.write('| %d | [%s<br>(%s)](https://github.com/%s) | <img alt=\'%s\' src="https://avatars.githubusercontent.com/in/%s?s=128&v=4" width="40px" /> | %s | %s | %s | %d | %d |\n' %(
+                f.write('| %d | [%s<br>(%s)](https://github.com/%s) | <img alt=\'%s\' src="https://avatars.githubusercontent.com/u/%s?s=128&v=4" width="40px" /> | %s | %s | %s | %d | %d |\n' %(
                     i, 
                     v.get('name', '-'), k, k,
                     k, v.get('databaseId', '15368'),
