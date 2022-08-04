@@ -20,7 +20,6 @@ timeout = 300  # minutes
 TopUser_MAP={}
 relations='' # relation records
 users={} # user + json path
-reqs=[] # reqs in grequest main
 CURRENT_DIR="./data/jobs/"+os.getenv("GITHUB_RUN_NUMBER", "0")+"/"
 
 class RunningInfo:
@@ -392,29 +391,27 @@ def get_top(query):
 def proc_response(res, **kwargs):
     # do something ..
     X=json.loads(res.request.body).get('variables', {})
-    print("🎵🎵 Response:", res.status_code, X, res.elapsed.total_seconds())
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"🎵🎵 Response:", res.status_code, X, res.elapsed.total_seconds())
     RI.save_s(status_code=res.status_code)
-    # rework...
-    global TopUser_MAP
-    n=X.get('login', '')
-    if n in TopUser_MAP:
-        TopUser_MAP[n]['ready_fetch']=True
-        print(n, "reworker in response.")
     try:
-        if res.status_code != 200:
-            global reqs
-            reqs.append(X)
-            return
-        t=json.loads(res.text)
-        r=t.get('data', {}).get('rateLimit', {})
-        print("⚠️ rate", r)
-        u=t.get('data', {}).get('user', {})
-        if not u:
-            print(t)
-        save_data([u])
-        RI.save_u(u)
+        if res.status_code == 200:
+            t=json.loads(res.text)
+            r=t.get('data', {}).get('rateLimit', {})
+            print("⚠️ rate", r)
+            u=t.get('data', {}).get('user', {})
+            if not u:
+                print(t)
+            save_data([u])
+            RI.save_u(u)
     except Exception as e:
         print("proc_response", e)
+    # make rework flag ready_fetch ...
+    global TopUser_MAP
+    n=X.get('login', '')
+    print("top user", n)
+    if n in TopUser_MAP:
+        TopUser_MAP[n]['ready_fetch']=True
+        print(n, "ready worker after response.")
 
 
 def err_handler(request, exception):
@@ -454,11 +451,11 @@ def save_data(dat, root=True):
                 del dd['followers']['nodes']
             f.write(json.dumps(dd, indent=2, ensure_ascii=False))
             users[user]=path
-            if root:
-                global TopUser_MAP
-                d['ready_fetch']=True
-                TopUser_MAP[user]=d
-                print(user, 'ready true')
+            
+        if root:
+            global TopUser_MAP
+            TopUser_MAP[user]['ready_fetch']=True
+            print(user, 'ready true')
         
 
 def load_relation_data():
@@ -538,6 +535,11 @@ def load_users():
     print("user history count", len(users))
             
 
+def proc_request(url, headers, json):
+    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", json['variables'])
+    res=requests.post(url, headers=headers, json=json)
+    proc_response(res)
+
 def main_grequests():
     headers = {
         "User-Agent": "Awesome-Octocat-App"
@@ -561,7 +563,7 @@ def main_grequests():
                 break
             x={k:v for k, v in TopUser_MAP.items() if v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)}
             if not any([v.get('ready_fetch', False) for k, v in x.items()]):
-                print("💤💤 waiting...")
+                print("💤💤 all no response to waiting...")
                 time.sleep(2)
                 continue
 
@@ -579,24 +581,32 @@ def main_grequests():
                 if not v.get('ready_fetch', False):
                     continue
                 
-                req=grequests.post(
+                # req=grequests.post(
+                #     'https://api.github.com/graphql', 
+                #     headers=headers, 
+                #     json=make_user(k, v['followers']['pageInfo']['endCursor']),
+                #     hooks={"response":proc_response})
+
+                # time.sleep(2)
+                # processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
+
+                executor.submit(proc_request, 
                     'https://api.github.com/graphql', 
                     headers=headers, 
-                    json=make_user(k, v['followers']['pageInfo']['endCursor']),
-                    hooks={"response":proc_response})
-
-                time.sleep(2)
-                processes.append(executor.submit(grequests.map, [req], exception_handler=err_handler))
-                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", k, v['followers']['pageInfo']['endCursor'])
+                    json=make_user(k, v['followers']['pageInfo']['endCursor']))
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🧧🧧push queue", k, v['followers']['pageInfo']['endCursor'])
                 TopUser_MAP[k]['ready_fetch']=False
 
                 if time.time() - start_time > timeout * 60:
                     print("⛔⛔ make users timeout")
                     timeout_flag = True
                     break
+                
+                time.sleep(2)
 
             # timeout in request for loop
             if timeout_flag:
+                print("⛔⛔ make users timeout exit")
                 break
             print("new round", len(processes))
         
@@ -641,3 +651,4 @@ if __name__ == "__main__":
     main_grequests()
     output_relation()
     RI.output()
+  
