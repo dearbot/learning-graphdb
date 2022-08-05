@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
+
 import os
 import sys
 import time
@@ -19,17 +20,27 @@ timeout = 300  # minutes
 ###
 TopUser_MAP={}
 relations='' # relation records
-users={} # user + json path
+users_path={} # user + json path
 CURRENT_DIR="./data/jobs/"+os.getenv("GITHUB_RUN_NUMBER", "0")+"/"
 
 class RunningInfo:
     status={}
     users={}
+    status_latest=200
+    waiting_start=0
 
     def save_s(self, status_code):
         if status_code not in self.status:
             self.status[status_code] = 0
         self.status[status_code]+=1
+        self.status_latest=status_code
+        if status_code == 403:
+            self.waiting_start=time.time()
+        else:
+            self.waiting_start=0
+    
+    def update_waiting(self):
+        self.waiting_start=time.time()
 
     def save_u(self, user):
         if not user:
@@ -91,9 +102,6 @@ class RunningInfo:
                     if os.path.isdir("./data/jobs/"+i):
                         f.write("| %s | %d |\n" % (i, len(os.listdir('./data/jobs/'+i))))
                         total += len(os.listdir('./data/jobs/'+i))
-#             # save users folder and total
-#             f.write("| users | %d |\n" % (len(os.listdir('./data/users'))))
-#             total += len(os.listdir('./data/users'))
             f.write('| **total** | %d |\n' % (total))
             
 
@@ -174,11 +182,73 @@ def make_search_query():
     search(query: "", type: USER, first: 100) {
         userCount
         %s
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
     }
     }
     """
     # Y3Vyc29yOjEwMA==
     return query % (snode)
+
+def make_search_query_w_cursor(cursor):
+    snode='''
+    nodes {
+        ... on User {
+        id
+        databaseId
+        login
+        name
+        bio
+        company
+        location
+        email
+        twitterUsername
+        createdAt
+        updatedAt
+        followers(first: 1) {
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+        following(first: 1) {
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+        }
+    }
+    '''
+    query="""
+    {
+    viewer {
+        login
+    }
+    rateLimit(dryRun: false) {
+        cost
+        limit
+        nodeCount
+        remaining
+        resetAt
+        used
+    }
+    search(query: "", type: USER, first: 100, after: "%s") {
+        userCount
+        %s
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+    }
+    }
+    """
+    # Y3Vyc29yOjEwMA==
+    return query % (cursor, snode)
 
 def make_user_query_wo_cursor():
     query="""
@@ -368,7 +438,7 @@ def make_user(login, cursor=""):
             "variables": make_user_variable(login, '') 
         }
 
-def get_top(query):
+def get_top_request(query):
     headers = {}
     if token:
         headers['Authorization'] = 'token ' + token
@@ -382,7 +452,7 @@ def get_top(query):
         
         if "errors" in t:
             print("get top", t)
-        return t['data']['search']['nodes']
+        return t['data']['search']
     except Exception as e:
         print("get search", e)
         # {'data': None, 'errors': [{'message': 'Something went wrong while executing your query. This may be the result of a timeout, or it could be a GitHub bug. Please include `A192:7CFA:EB2D34:1B4927F:611B5598` when reporting this issue.'}]}
@@ -400,7 +470,9 @@ def proc_response(res, **kwargs):
             print("⚠️ rate", r)
             u=t.get('data', {}).get('user', {})
             if not u:
+                # {'errors': [{'type': 'RATE_LIMITED', 'message': 'API rate limit exceeded for user ID XXXX.'}]}
                 print(t)
+                RI.update_waiting()
             save_data([u])
             RI.save_u(u)
     except Exception as e:
@@ -435,14 +507,14 @@ def save_data(dat, root=True):
             save_relation_data(user, 'following', d['following']['nodes'])
             save_data(d['following']['nodes'], False)
         
-        global users
+        global users_path
         path=CURRENT_DIR + user+'.json'
-        if user not in users:
+        if user not in users_path:
             with open('/tmp/users.txt', 'a') as f:
                 f.write('{}\n'.format(user))
         else:
             # update history jobs data
-            path=users[user]
+            path=users_path[user]
 
         with open(path, 'w') as f:
             dd = copy.deepcopy(d)
@@ -450,7 +522,7 @@ def save_data(dat, root=True):
             if dd.get("followers", {}).get("nodes", []):
                 del dd['followers']['nodes']
             f.write(json.dumps(dd, indent=2, ensure_ascii=False))
-            users[user]=path
+            users_path[user]=path
             
         if root:
             global TopUser_MAP
@@ -497,10 +569,10 @@ def load_top(top):
     for d in top:
         if not d:
             continue
-        if d['login'] not in users:
+        if d['login'] not in users_path:
             t.append(d)
             continue
-        with open(users[d['login']], 'r') as f:
+        with open(users_path[d['login']], 'r') as f:
             l = f.read()
             if l:
                 l = json.loads(l)
@@ -517,8 +589,8 @@ def load_top(top):
         TopUser_MAP[i['login']]=i
     return t
 
-def load_users():
-    global users
+def load_users_path():
+    global users_path
     js = []
     if os.path.exists("./data/jobs"):
          js=["./data/jobs/"+i for i in os.listdir('./data/jobs')]
@@ -527,18 +599,24 @@ def load_users():
             us=os.listdir(i)
             for u in us:
                 uu=u.split(".json")[0]
-                if uu in users:
-                    print("remove dup %s %s" % (i+"/"+u, users[uu]))
+                if uu in users_path:
+                    print("remove dup %s %s" % (i+"/"+u, users_path[uu]))
                     os.remove(i+"/"+u)
                     continue
-                users[uu]=i+"/"+u
-    print("user history count", len(users))
+                users_path[uu]=i+"/"+u
+    print("user history count", len(users_path))
             
 
 def proc_request(url, headers, json):
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", json['variables'])
-    res=requests.post(url, headers=headers, json=json)
-    proc_response(res)
+    if time.time() - RI.waiting_start < 60:
+        # 60s in 403
+        global TopUser_MAP
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "❌ no send", json['variables'])
+        TopUser_MAP[json['variables']['login']]['ready_fetch']=True
+    else:
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🎈🎈 send", json['variables'])
+        res=requests.post(url, headers=headers, json=json)
+        proc_response(res)
 
 def main_grequests():
     headers = {
@@ -547,7 +625,6 @@ def main_grequests():
     if token:
         headers['Authorization'] = 'token ' + token
         
-    processes = []
     with ThreadPoolExecutor(max_workers=100) as executor:
         while True:
             global TopUser_MAP
@@ -560,6 +637,7 @@ def main_grequests():
             global start_time
             if time.time() - start_time > timeout * 60:
                 print("main_grequests timeout")
+                executor.shutdown(wait=False, cancel_futures=True)
                 break
             x={k:v for k, v in TopUser_MAP.items() if v.get('followers', {}).get('pageInfo', {}).get('hasNextPage', False)}
             if not any([v.get('ready_fetch', False) for k, v in x.items()]):
@@ -596,25 +674,26 @@ def main_grequests():
                     json=make_user(k, v['followers']['pageInfo']['endCursor']))
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🧧🧧push queue", k, v['followers']['pageInfo']['endCursor'])
                 TopUser_MAP[k]['ready_fetch']=False
+                time.sleep(0.1)
 
                 if time.time() - start_time > timeout * 60:
                     print("⛔⛔ make users timeout")
                     timeout_flag = True
                     break
                 
-               # time.sleep(1)
-
             # timeout in request for loop
             if timeout_flag:
                 print("⛔⛔ make users timeout exit")
+                executor.shutdown(wait=False, cancel_futures=True)
                 break
-            print("new round", len(processes))
+            print("new round")
+            time.sleep(30)
         
     with open('./data/README.md', 'w') as f:
         f.write('## Github User Summary\n\n')
         f.write("- Top User Count: %d\n" % len(TopUser_MAP))
         f.write("- Relations: %d\n" % len(relations.split('\n')))
-        f.write("- Real User Updated: %d\n" % len(users))
+        f.write("- Real User Updated: %d\n" % len(users_path))
 
 
 if __name__ == "__main__":
@@ -631,21 +710,24 @@ if __name__ == "__main__":
     start_time = time.time()
 
     # load users from jobs folders
-    load_users()
+    load_users_path()
 
     # top user from search query
-    query = make_search_query()
-    top=get_top(query)
-    # python user.py token timeout replace
-    if len(sys.argv) > 3:
-        top=top
-    else:
-        top=load_top(top)
-    if not top:
-        print('top is null')
-        exit(0)
-    
-    save_data(top)
+    cursor="Y3Vyc29yOjEw"
+    for i in range(2):
+        print(i)
+        query = make_search_query_w_cursor(cursor)
+        top_data=get_top_request(query)
+        # make global TOPUSERSS, reload the cursor from files.
+        top=load_top(top_data['nodes'])
+        if not top:
+            print('top is null')
+            exit(0)
+        save_data(top)
+
+        cursor=top_data['pageInfo']['endCursor']
+        if not top_data['pageInfo']['hasNextPage']:
+            break
 
     load_relation_data()
     main_grequests()
