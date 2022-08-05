@@ -714,7 +714,7 @@ if __name__ == "__main__":
 
     # top user from search query
     cursor="Y3Vyc29yOjEw"
-    for i in range(2):
+    for i in range(5):
         print(i)
         query = make_search_query_w_cursor(cursor)
         top_data=get_top_request(query)
