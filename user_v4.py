@@ -482,6 +482,7 @@ def proc_response(res, **kwargs):
 def err_handler(request, exception):
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "request error", exception)
 
+GEXEC=ThreadPoolExecutor(max_workers=200)
 
 def save_data(dat, root=True):
     if not dat:
@@ -519,9 +520,9 @@ def save_data(dat, root=True):
         # save sub data
         if d.get('followers', {}).get('nodes', False):
             save_relation_data(user, 'follower', d['followers']['nodes'])
-            with ThreadPoolExecutor(max_workers=100) as executor:
-                xx=[[i] for i in d['followers']['nodes']]
-                executor.map(save_data, xx, [False]*len(xx))
+            xx=[[i] for i in d['followers']['nodes']]
+            global GEXEC
+            GEXEC.map(save_data, xx, [False]*len(xx))
 
         if d.get('following', {}).get('nodes', False):
             save_relation_data(user, 'following', d['following']['nodes'])
