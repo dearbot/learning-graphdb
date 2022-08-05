@@ -463,13 +463,6 @@ def proc_response(res, **kwargs):
     X=json.loads(res.request.body).get('variables', {})
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),"🎵🎵 Response:", res.status_code, X, res.elapsed.total_seconds())
     RI.save_s(status_code=res.status_code)
-    # make rework flag ready_fetch ...
-    global TopUser_MAP
-    n=X.get('login', '')
-    print("top user", n)
-    if n in TopUser_MAP:
-        TopUser_MAP[n]['ready_fetch']=True
-        print(n, "ready worker after response.")
     try:
         if res.status_code == 200:
             t=json.loads(res.text)
@@ -480,6 +473,7 @@ def proc_response(res, **kwargs):
                 # {'errors': [{'type': 'RATE_LIMITED', 'message': 'API rate limit exceeded for user ID XXXX.'}]}
                 print(t)
                 RI.update_waiting()
+            #############  
             save_data([u])
             RI.save_u(u)
     except Exception as e:
@@ -494,17 +488,11 @@ def save_data(dat, root=True):
         return
     if not os.path.exists(CURRENT_DIR):
         os.makedirs(CURRENT_DIR)
+
     for d in dat:
         if not d:
             continue
         user = d['login']
-        if d.get('followers', {}).get('nodes', False):
-            save_relation_data(user, 'follower', d['followers']['nodes'])
-            save_data(d['followers']['nodes'], False)
-
-        if d.get('following', {}).get('nodes', False):
-            save_relation_data(user, 'following', d['following']['nodes'])
-            save_data(d['following']['nodes'], False)
         
         global users_path
         path=CURRENT_DIR + user+'.json'
@@ -522,12 +510,25 @@ def save_data(dat, root=True):
                 del dd['followers']['nodes']
             f.write(json.dumps(dd, indent=2, ensure_ascii=False))
             users_path[user]=path
-            
+        
         if root:
             global TopUser_MAP
             TopUser_MAP[user]['ready_fetch']=True
             print(user, 'ready true')
-        
+            
+        # save sub data
+        if d.get('followers', {}).get('nodes', False):
+            save_relation_data(user, 'follower', d['followers']['nodes'])
+            with ThreadPoolExecutor(max_workers=100) as executor:
+                xx=[[i] for i in d['followers']['nodes']]
+                executor.map(save_data, xx, [False]*len(xx))
+
+        if d.get('following', {}).get('nodes', False):
+            save_relation_data(user, 'following', d['following']['nodes'])
+            with ThreadPoolExecutor(max_workers=100) as executor:
+                xx=[[i] for i in d['following']['nodes']]
+                executor.map(save_data, xx, [False]*len(xx))
+                
 
 def load_relation_data():
     if not os.path.exists("./relations/relations.txt"):
@@ -624,7 +625,7 @@ def main_grequests():
     if token:
         headers['Authorization'] = 'token ' + token
         
-    with ThreadPoolExecutor(max_workers=500) as executor:
+    with ThreadPoolExecutor(max_workers=100) as executor:
         while True:
             global TopUser_MAP
             if len(TopUser_MAP) == 0:
