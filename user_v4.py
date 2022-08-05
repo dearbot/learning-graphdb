@@ -672,6 +672,7 @@ def main_grequests():
                     'https://api.github.com/graphql', 
                     headers=headers, 
                     json=make_user(k, v['followers']['pageInfo']['endCursor']))
+                print("⭐️threading count:", len(threading.enumerate()))
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "🧧🧧push queue", k, v['followers']['pageInfo']['endCursor'])
                 TopUser_MAP[k]['ready_fetch']=False
                 time.sleep(0.1)
