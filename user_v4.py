@@ -483,7 +483,7 @@ def proc_response(res, **kwargs):
 def err_handler(request, exception):
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "request error", exception)
 
-GEXEC=ThreadPoolExecutor(max_workers=200)
+GEXEC=ThreadPoolExecutor(max_workers=500)
 
 def save_data(dat, root=True):
     if not dat:
