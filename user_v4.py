@@ -9,7 +9,7 @@ import grequests
 import requests
 import copy
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 
 
 # https://gql.readthedocs.io/en/v3.0.0a6/
@@ -483,7 +483,7 @@ def proc_response(res, **kwargs):
 def err_handler(request, exception):
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "request error", exception)
 
-GEXEC=ThreadPoolExecutor(max_workers=500)
+GEXEC=ProcessPoolExecutor(max_workers=500)
 
 def save_data(dat, root=True):
     if not dat:
@@ -627,7 +627,7 @@ def main_grequests():
     if token:
         headers['Authorization'] = 'token ' + token
         
-    with ThreadPoolExecutor(max_workers=100) as executor:
+    with ProcessPoolExecutor(max_workers=100) as executor:
         while True:
             global TopUser_MAP
             if len(TopUser_MAP) == 0:
