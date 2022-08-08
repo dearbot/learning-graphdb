@@ -54,9 +54,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - run: python user_v4.py ${{ secrets.PAT }} ${{ github.event.inputs.timeout }}
+#     - run: python user_v4.py ${{ secrets.PAT }} ${{ github.event.inputs.timeout }}
+#       if: github.event_name == 'workflow_dispatch'
+#     - run: python user_v4.py ${{ secrets.PAT }} 150
+#       if: github.event_name == 'schedule'
+    - name: Setup Go environment
+      uses: actions/setup-go@v3.2.1   
+    - run: go run main.go ${{ secrets.PAT }} ${{ github.event.inputs.timeout }}
       if: github.event_name == 'workflow_dispatch'
-    - run: python user_v4.py ${{ secrets.PAT }} 150
+    - run: go run main.go ${{ secrets.PAT }} 150
       if: github.event_name == 'schedule'
     - run: |
         # make output
