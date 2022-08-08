@@ -135,13 +135,14 @@ func main() {
 						}
 						wg.Done()
 					})
-					time.Sleep(time.Duration(200)*time.Millisecond)
+					time.Sleep(time.Duration(500)*time.Millisecond)
 				}
 				wg.Wait()
 
 				fmt.Printf("time consumed: %fs\n", time.Now().Sub(beg).Seconds())
 				fmt.Printf("len(NextNumberTasks)=%d\n", len(NextNumberTasks))
-				dump(ResponseInfo)
+                                dump(ResponseInfo)
+                                numberTasks=NextNumberTasks
 			}// select
 		}//for
 	}()
