@@ -69,7 +69,7 @@ func main() {
     go func ()  {
         client := http.Client{}
         jsonStr := makeSearchRequestData(cursor)
-        jsonString, err := json.Marshal(jsonStr)
+        jsonString, _ := json.Marshal(jsonStr)
         respBody, err := NumberQueryRequest(&client, token, jsonString)
         if err != nil {
             fmt.Printf("error: %s\n", err)
@@ -125,7 +125,7 @@ func main() {
                         client := http.Client{}
                         fmt.Printf("%s %s request\n", login.(string), endCursor.(string))
                         jsonStr := makeUserRequestData(login.(string), endCursor.(string))
-                        jsonString, err := json.Marshal(jsonStr)
+                        jsonString, _ := json.Marshal(jsonStr)
                         respBody, err := NumberQueryRequest(&client, token, jsonString)
                         if err != nil {
                             fmt.Printf("error: %s %s\n", login, err)
@@ -151,7 +151,7 @@ func main() {
                 })
                 wg.Wait()
 
-                fmt.Printf("time consumed: %fs\n", time.Now().Sub(beg).Seconds())
+                fmt.Printf("time consumed: %fs\n", time.Since(beg).Seconds())
                 fmt.Printf("current users=%d\n", UserCountThisJob)
                 fmt.Printf("len(NextNumberTasks)=%d\n", syncMapLength(NextNumberTasks))
                 fmt.Printf("len(UserHistoryPath)=%d\n", syncMapLength(UserHistoryPath))
@@ -166,7 +166,7 @@ func main() {
     fmt.Println("Finish")
 }
 
-func syncMapLength(data sync.Map{}) int {
+func syncMapLength(data sync.Map) int {
     lens := 0
     data.Range(func(key, value interface{}) bool {
         lens++
@@ -632,7 +632,7 @@ func saveUserToFile(node Node, top bool) {
             *nodeNew = node
             nodeNew.Followers.Nodes=nil
             fileData, _ := json.MarshalIndent(nodeNew, "", " ")
-            _ = ioutil.WriteFile(file, fileData, 0777)
+            _ = ioutil.WriteFile(file.(string), fileData, 0777)
        }
     } else {
         // not in or used
@@ -658,18 +658,18 @@ func makeUserHistoryPath() {
     os.MkdirAll("./data/jobs", 0777)
     dirs, err := ioutil.ReadDir("./data/jobs")
     if err != nil {
-        fmt.Printf(err.Error())
+        fmt.Println(err.Error())
     }
 
     for _, d := range dirs {
         files, err := ioutil.ReadDir(fmt.Sprintf("./data/jobs/%s/", d.Name()))
         if err != nil {
-            fmt.Printf(err.Error())
+            fmt.Println(err.Error())
         }
         for _, file := range files {
             login :=strings.Split(file.Name(), ".json")[0]
-            if hf, found := UserHistoryPath(login); found {
-                os.Remove(hf)
+            if hf, found := UserHistoryPath.Load(login); found {
+                os.Remove(hf.(string))
             } else {
                 UserHistoryPath.Store(login, fmt.Sprintf("./data/jobs/%s/%s", d.Name(), file.Name()))
             }
