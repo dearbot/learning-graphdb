@@ -154,7 +154,7 @@ func main() {
                     lens++
                     return true
                 })
-                fmt.Printf("len(NextNumberTasks)=%d\n", lens)
+                fmt.Printf("len(NextNumberTasks)=%d, current users=%d\n", lens, UserCountThisJob)
                 dump(ResponseInfo)
                 numberTasks=NextNumberTasks
             }// select
@@ -169,6 +169,7 @@ var NextNumberTasks = sync.Map{}
 var UserHistoryPath = sync.Map{}
 var ResponseInfo = sync.Map{}
 var UserHistoryUsed = sync.Map{}
+var UserCountThisJob = 0
 
 
 type UserResponse struct {
@@ -599,10 +600,11 @@ func saveUserToFile(node Node, top bool) {
         currentPath = fmt.Sprintf("./data/jobs/%s/", os.Getenv("GITHUB_RUN_NUMBER"))
     }
     os.MkdirAll(currentPath, 0777)
+    UserCountThisJob += 1
     // check histroy 
     // fatal error: concurrent map read and map write
-    if _, used := UserHistoryUsed.Load(node.Login); !used {
-        if file, ok := UserHistoryPath.Load(node.Login); ok {
+    if file, ok := UserHistoryPath.Load(node.Login); ok {
+       if _, found := UserHistoryUsed.Load(node.Login); !found {
             // in
             // read the history cursor replace
             jsonFile, err := os.Open(file.(string))
@@ -615,17 +617,22 @@ func saveUserToFile(node Node, top bool) {
             json.Unmarshal([]byte(byteValue), &user)
             node.Followers.PageInfo=user.Followers.PageInfo
             UserHistoryUsed.Store(node.Login, "used")
-        }
-    } 
-
-    // not in or used
-    path := fmt.Sprintf("%s/%s.json", currentPath, node.Login)
-    nodeNew := new(Node)
-    *nodeNew = node
-    nodeNew.Followers.Nodes=nil
-    fileData, _ := json.MarshalIndent(nodeNew, "", " ")
-    _ = ioutil.WriteFile(path, fileData, 0777)
-    
+       } else {
+            nodeNew := new(Node)
+            *nodeNew = node
+            nodeNew.Followers.Nodes=nil
+            fileData, _ := json.MarshalIndent(nodeNew, "", " ")
+            _ = ioutil.WriteFile(file, fileData, 0777)
+       }
+    } else {
+        // not in or used
+        path := fmt.Sprintf("%s/%s.json", currentPath, node.Login)
+        nodeNew := new(Node)
+        *nodeNew = node
+        nodeNew.Followers.Nodes=nil
+        fileData, _ := json.MarshalIndent(nodeNew, "", " ")
+        _ = ioutil.WriteFile(path, fileData, 0777)
+    }
 
     for _, v := range node.Followers.Nodes {
         saveUserToFile(v, false)
@@ -651,7 +658,11 @@ func makeUserHistoryPath() {
         }
         for _, file := range files {
             login :=strings.Split(file.Name(), ".json")[0]
-            UserHistoryPath.Store(login, fmt.Sprintf("./data/jobs/%s/%s", d.Name(), file.Name()))
+            if hf, found := UserHistoryPath(login); found {
+                os.Remove(hf)
+            } else {
+                UserHistoryPath.Store(login, fmt.Sprintf("./data/jobs/%s/%s", d.Name(), file.Name()))
+            }
         }
     }
 }
