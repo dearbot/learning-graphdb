@@ -128,6 +128,7 @@ func main() {
                     wg.Add(1)
                     g.Run(func() {
                         client := http.Client{}
+                        fmt.Printf("%s %s request\n", login.(string), endCursor.(string))
                         jsonStr := makeUserRequestData(login.(string), endCursor.(string))
                         jsonString, err := json.Marshal(jsonStr)
                         respBody, err := NumberQueryRequest(&client, token, jsonString)
