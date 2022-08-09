@@ -133,6 +133,14 @@ func main() {
                             ur:=UserResponse{}
                             json.Unmarshal(respBody, &ur)
                             fmt.Printf("%s response\n", ur.Data.User.Login)
+                            if ur.Data.User.Login == "" {
+                                 if c, ok := ResponseInfo.Load("limited"); ok {
+                                    //do something here
+                                    ResponseInfo.Store("limited", c.(int)+1)
+                                } else {
+                                    ResponseInfo.Store("limited", 0)
+                                }
+                            }
                             // to save file and datas
                             saveUserToFile(ur.Data.User, true)
                         }
