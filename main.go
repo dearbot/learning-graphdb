@@ -104,12 +104,7 @@ func main() {
     }() 
     wg1.Wait()
 
-    lens := 0
-    numberTasks.Range(func(key, value interface{}) bool {
-        lens++
-        return true
-    })
-    fmt.Printf("goto loop %d\n", lens)
+    fmt.Printf("goto loop numberTasks=%d\n", syncMapLength(numberTasks))
 
     timeout := time.After(time.Minute * time.Duration(intputTimeout))
     finish := make(chan bool)
@@ -149,20 +144,27 @@ func main() {
                 wg.Wait()
 
                 fmt.Printf("time consumed: %fs\n", time.Now().Sub(beg).Seconds())
-                lens := 0
-                NextNumberTasks.Range(func(key, value interface{}) bool {
-                    lens++
-                    return true
-                })
-                fmt.Printf("len(NextNumberTasks)=%d, current users=%d\n", lens, UserCountThisJob)
+                fmt.Printf("current users=%d\n", UserCountThisJob)
+                fmt.Printf("len(NextNumberTasks)=%d\n", syncMapLength(NextNumberTasks))
+                fmt.Printf("len(UserHistoryPath)=%d\n", syncMapLength(UserHistoryPath))
+                fmt.Printf("len(UserHistoryUsed)=%d\n", syncMapLength(UserHistoryUsed))
                 dump(ResponseInfo)
                 numberTasks=NextNumberTasks
-            }// select
-        }//for
+            } // select
+        } //for
     }()
  
     <-finish
     fmt.Println("Finish")
+}
+
+func syncMapLength(data sync.Map{}) int {
+    lens := 0
+    data.Range(func(key, value interface{}) bool {
+        lens++
+        return true
+    })
+    return lens
 }
 
 var NextNumberTasks = sync.Map{}
