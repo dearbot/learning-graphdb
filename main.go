@@ -134,11 +134,11 @@ func main() {
                             json.Unmarshal(respBody, &ur)
                             fmt.Printf("%s response\n", ur.Data.User.Login)
                             if ur.Data.User.Login == "" {
-                                 if c, ok := ResponseInfo.Load("limited"); ok {
+                                 if c, ok := ResponseInfo.Load("RATE_LIMITED"); ok {
                                     //do something here
-                                    ResponseInfo.Store("limited", c.(int)+1)
+                                    ResponseInfo.Store("RATE_LIMITED", c.(int)+1)
                                 } else {
-                                    ResponseInfo.Store("limited", 0)
+                                    ResponseInfo.Store("RATE_LIMITED", 0)
                                 }
                             }
                             // to save file and datas
