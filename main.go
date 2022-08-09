@@ -55,7 +55,7 @@ func main() {
         cursor=os.Args[3]
     }
 
-   var numberTasks = map[string]string{}
+   var numberTasks = sync.Map{}
 
     wg1 := &sync.WaitGroup{}
     wg1.Add(1)
@@ -81,12 +81,12 @@ func main() {
             }
             fmt.Printf("%d nodes\n", len(sr.Data.Search.Nodes))
             for _, v := range sr.Data.Search.Nodes {
-                numberTasks[v.Login] =""
+                numberTasks.Store(v.Login, "")
                 // get the history endCursor
-                if file, ok := UserHistoryPath[v.Login]; ok {
+                if file, ok := UserHistoryPath.Load(v.Login); ok {
                     // in
                     // read the history cursor replace
-                    jsonFile, err := os.Open(file)
+                    jsonFile, err := os.Open(file.(string))
                     if err != nil {
                         fmt.Println(err)
                     }
@@ -95,7 +95,7 @@ func main() {
                     var user Node
                     json.Unmarshal([]byte(byteValue), &user)
                     if user.Followers.PageInfo.HasNextPage {
-                        numberTasks[v.Login]=user.Followers.PageInfo.EndCursor
+                        numberTasks.Store(v.Login, user.Followers.PageInfo.EndCursor)
                     }
                 } 	
             }
@@ -103,7 +103,13 @@ func main() {
         wg1.Done()
     }() 
     wg1.Wait()
-    fmt.Printf("goto loop %d\n", len(numberTasks))
+
+    lens := 0
+    numberTasks.Range(func(key, value interface{}) bool {
+        lens++
+        return true
+    })
+    fmt.Printf("goto loop %d\n", lens)
 
     timeout := time.After(time.Minute * time.Duration(intputTimeout))
     finish := make(chan bool)
@@ -118,11 +124,11 @@ func main() {
                 g := NewG(routineCountTotal)
                 wg := &sync.WaitGroup{}
                 beg := time.Now()
-                for login, endCursor := range numberTasks {
+                numberTasks.Range(func(login, endCursor interface{}) bool {
                     wg.Add(1)
                     g.Run(func() {
                         client := http.Client{}
-                        jsonStr := makeUserRequestData(login, endCursor)
+                        jsonStr := makeUserRequestData(login.(string), endCursor.(string))
                         jsonString, err := json.Marshal(jsonStr)
                         respBody, err := NumberQueryRequest(&client, token, jsonString)
                         if err != nil {
@@ -137,13 +143,19 @@ func main() {
                         wg.Done()
                     })
                     time.Sleep(time.Duration(1000)*time.Millisecond)
-                }
+                    return true
+                })
                 wg.Wait()
 
                 fmt.Printf("time consumed: %fs\n", time.Now().Sub(beg).Seconds())
-                fmt.Printf("len(NextNumberTasks)=%d\n", len(NextNumberTasks))
-                                dump(ResponseInfo)
-                                numberTasks=NextNumberTasks
+                lens := 0
+                NextNumberTasks.Range(func(key, value interface{}) bool {
+                    lens++
+                    return true
+                })
+                fmt.Printf("len(NextNumberTasks)=%d\n", lens)
+                dump(ResponseInfo)
+                numberTasks=NextNumberTasks
             }// select
         }//for
     }()
@@ -152,10 +164,10 @@ func main() {
     fmt.Println("Finish")
 }
 
-var NextNumberTasks = map[string]string{}
-var ResponseInfo = map[string]int{}
-var UserHistoryPath = map[string]string{}
-var UserHistoryUsed = map[string]string{}
+var NextNumberTasks = sync.Map{}
+var UserHistoryPath = sync.Map{}
+var ResponseInfo = sync.Map{}
+var UserHistoryUsed = sync.Map{}
 
 
 type UserResponse struct {
@@ -254,11 +266,11 @@ func NumberQueryRequest(client *http.Client, token string, jsonStr []byte) (body
     }
     
     statusCode := strconv.Itoa(resp.StatusCode)
-    if _, ok := ResponseInfo[statusCode]; ok {
+    if c, ok := ResponseInfo.Load(statusCode); ok {
         //do something here
-        ResponseInfo[strconv.Itoa(resp.StatusCode)]+=1
+        ResponseInfo.Store(strconv.Itoa(resp.StatusCode), c.(int)+1)
     } else {
-        ResponseInfo[strconv.Itoa(resp.StatusCode)]=0
+        ResponseInfo.Store(strconv.Itoa(resp.StatusCode), 0)
     }
 
     if resp.StatusCode != http.StatusOK {
@@ -266,7 +278,7 @@ func NumberQueryRequest(client *http.Client, token string, jsonStr []byte) (body
         // reworker
         requestData:=RequestData{}
         json.Unmarshal(jsonStr, &requestData)
-        NextNumberTasks[requestData.Variables.Login]=requestData.Variables.After
+        NextNumberTasks.Store(requestData.Variables.Login, requestData.Variables.After)
         return nil, fmt.Errorf("rework: response code is %d, body:%s", resp.StatusCode, string(data))
     }
     if resp != nil && resp.Body != nil {
@@ -587,12 +599,12 @@ func saveUserToFile(node Node, top bool) {
     }
     os.MkdirAll(currentPath, 0777)
     // check histroy 
-    
-    if _, used := UserHistoryUsed[node.Login]; !used {
-        if file, ok := UserHistoryPath[node.Login]; ok {
+    // fatal error: concurrent map read and map write
+    if _, used := UserHistoryUsed.Load(node.Login); !used {
+        if file, ok := UserHistoryPath.Load(node.Login); ok {
             // in
             // read the history cursor replace
-            jsonFile, err := os.Open(file)
+            jsonFile, err := os.Open(file.(string))
             if err != nil {
                 fmt.Println(err)
             }
@@ -601,7 +613,7 @@ func saveUserToFile(node Node, top bool) {
             var user Node
             json.Unmarshal([]byte(byteValue), &user)
             node.Followers.PageInfo=user.Followers.PageInfo
-            UserHistoryUsed[node.Login]="used"
+            UserHistoryUsed.Store(node.Login, "used")
         }
     } 
 
@@ -620,7 +632,7 @@ func saveUserToFile(node Node, top bool) {
 
     if top && node.Followers.PageInfo.HasNextPage {
         // put queue
-        NextNumberTasks[node.Login]=node.Followers.PageInfo.EndCursor
+        NextNumberTasks.Store(node.Login, node.Followers.PageInfo.EndCursor)
     }
 }
 
@@ -638,12 +650,17 @@ func makeUserHistoryPath() {
         }
         for _, file := range files {
             login :=strings.Split(file.Name(), ".json")[0]
-            UserHistoryPath[login]=fmt.Sprintf("./data/jobs/%s/%s", d.Name(), file.Name())
+            UserHistoryPath.Store(login, fmt.Sprintf("./data/jobs/%s/%s", d.Name(), file.Name()))
         }
     }
 }
 
-func dump(data interface{}){
-    b,_:=json.MarshalIndent(data, "", "  ")
+func dump(data sync.Map){
+    m := map[string]interface{}{}
+    data.Range(func(key, value interface{}) bool {
+        m[fmt.Sprint(key)] = value
+        return true
+    })
+    b,_:=json.MarshalIndent(m, "", "  ")
     fmt.Println(string(b))
 }
