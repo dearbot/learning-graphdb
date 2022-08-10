@@ -668,8 +668,8 @@ func makeUserHistoryPath() {
         }
         for _, file := range files {
             login :=strings.Split(file.Name(), ".json")[0]
-            if hf, found := UserHistoryPath.Load(login); found {
-                os.Remove(hf.(string))
+            if _, found := UserHistoryPath.Load(login); found {
+                os.Remove(fmt.Sprintf("./data/jobs/%s/%s", d.Name(), file.Name()))
             } else {
                 UserHistoryPath.Store(login, fmt.Sprintf("./data/jobs/%s/%s", d.Name(), file.Name()))
             }
