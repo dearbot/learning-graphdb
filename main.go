@@ -291,7 +291,7 @@ func NumberQueryRequest(client *http.Client, token string, jsonStr []byte) (body
         requestData:=RequestData{}
         json.Unmarshal(jsonStr, &requestData)
         NextNumberTasks.Store(requestData.Variables.Login, requestData.Variables.After)
-        return nil, fmt.Errorf("rework: response code is %d, body:%s", resp.StatusCode, string(data))
+        return nil, fmt.Errorf("rework: response code is %d", resp.StatusCode)
     }
     if resp != nil && resp.Body != nil {
         defer resp.Body.Close()
