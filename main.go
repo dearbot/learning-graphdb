@@ -286,7 +286,7 @@ func NumberQueryRequest(client *http.Client, token string, jsonStr []byte) (body
     }
 
     if resp.StatusCode != http.StatusOK {
-        data, _ := ioutil.ReadAll(resp.Body)
+        _, _ := ioutil.ReadAll(resp.Body)
         // reworker
         requestData:=RequestData{}
         json.Unmarshal(jsonStr, &requestData)
