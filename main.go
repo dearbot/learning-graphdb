@@ -82,6 +82,7 @@ func main() {
             fmt.Printf("%d nodes\n", len(sr.Data.Search.Nodes))
             for _, v := range sr.Data.Search.Nodes {
                 numberTasks.Store(v.Login, "")
+                NextNumberTasks.Store(v.Login, "")
                 // get the history endCursor
                 if file, ok := UserHistoryPath.Load(v.Login); ok {
                     // in
@@ -96,6 +97,7 @@ func main() {
                     json.Unmarshal([]byte(byteValue), &user)
                     if user.Followers.PageInfo.HasNextPage {
                         numberTasks.Store(v.Login, user.Followers.PageInfo.EndCursor)
+                        NextNumberTasks.Store(v.Login, user.Followers.PageInfo.EndCursor)
                     }
                 } 	
             }
@@ -157,7 +159,11 @@ func main() {
                 fmt.Printf("len(UserHistoryPath)=%d\n", syncMapLength(UserHistoryPath))
                 fmt.Printf("len(UserHistoryUsed)=%d\n", syncMapLength(UserHistoryUsed))
                 dump(ResponseInfo)
-                numberTasks=NextNumberTasks
+                NextNumberTasks.Range(func(login, endCursor interface{}) bool {
+                    numberTasks.Store(login, endCursor)
+                    return true
+                })
+
             } // select
         } //for
     }()
@@ -605,6 +611,11 @@ func makeSearchRequestData(cursor string) map[string]interface{} {
 }
 
 func saveUserToFile(node Node, top bool) {
+    if _, ok := NextNumberTasks.Load(node.Login); ok && !top {
+        fmt.Printf("no save because %s in search\n", node.Login)
+        return
+    }
+
     currentPath := "./data/jobs/0/"
     if os.Getenv("GITHUB_RUN_NUMBER") != "" {
         currentPath = fmt.Sprintf("./data/jobs/%s/", os.Getenv("GITHUB_RUN_NUMBER"))
@@ -628,6 +639,7 @@ func saveUserToFile(node Node, top bool) {
             node.Followers.PageInfo=user.Followers.PageInfo
             UserHistoryUsed.Store(node.Login, "used")
        } else {
+            // used
             nodeNew := new(Node)
             *nodeNew = node
             nodeNew.Followers.Nodes=nil
@@ -635,7 +647,7 @@ func saveUserToFile(node Node, top bool) {
             _ = ioutil.WriteFile(file.(string), fileData, 0777)
        }
     } else {
-        // not in or used
+        // not in
         path := fmt.Sprintf("%s/%s.json", currentPath, node.Login)
         nodeNew := new(Node)
         *nodeNew = node
