@@ -62,7 +62,7 @@ jobs:
       uses: actions/setup-go@v3.2.1   
     - run: go run main.go ${{ secrets.PAT }} ${{ github.event.inputs.timeout }} || true
       if: github.event_name == 'workflow_dispatch'
-    - run: go run main.go ${{ secrets.PAT }} 150 || true
+    - run: go run main.go ${{ secrets.PAT }} 240 || true
       if: github.event_name == 'schedule'
     - run: |
         # make output
